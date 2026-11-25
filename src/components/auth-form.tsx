@@ -1,0 +1,48 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
+
+export function AuthForm({ mode }: { mode: "login" | "signup" }) {
+  const router = useRouter();
+  const requested = useSearchParams().get("next");
+  const next = requested?.startsWith("/app") ? requested : "/app";
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const signup = mode === "signup";
+
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    const f = new FormData(e.currentTarget);
+    const email = String(f.get("email"));
+    const password = String(f.get("password"));
+    const res = signup
+      ? await authClient.signUp.email({ name: String(f.get("name")), email, password })
+      : await authClient.signIn.email({ email, password });
+    setBusy(false);
+    if (res.error) return setError(res.error.message ?? "something went wrong");
+    router.push(next);
+    router.refresh();
+  }
+
+  return (
+    <form onSubmit={submit} className="auth-form" aria-busy={busy}>
+      <h1>{signup ? "create your account" : "welcome back"}</h1>
+      {signup && (
+        <label className="field"><span className="label">name</span><input name="name" required autoComplete="name" className="input" /></label>
+      )}
+      <label className="field"><span className="label">email</span><input name="email" type="email" required autoComplete="email" className="input" /></label>
+      <label className="field"><span className="label">password</span><input name="password" type="password" required minLength={8} autoComplete={signup ? "new-password" : "current-password"} className="input" /></label>
+      {error && <p role="alert" className="error">{error}</p>}
+      <button className="btn btn--primary" disabled={busy}>{busy ? "one moment" : signup ? "sign up" : "sign in"}</button>
+      <p className="label">
+        {signup ? "already have an account? " : "new here? "}
+        <Link href={signup ? "/login" : "/signup"} className="link">{signup ? "sign in" : "create an account"}</Link>
+      </p>
+    </form>
+  );
+}
