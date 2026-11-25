@@ -11,8 +11,9 @@
     "db:generate": "node --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs generate",
     "db:migrate": "node --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs migrate",
     "db:studio": "node --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs studio",
-    "test": "tsx --test src/lib/lib.test.ts",
-    "check:capture": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-capture.ts"
+    "test": "tsx --test src/lib/lib.test.ts src/lib/phase2.test.ts",
+    "check:capture": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-capture.ts",
+    "check:commitments": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-commitments.ts"
   },
   "dependencies": {
     "better-auth": "^1.7.28",

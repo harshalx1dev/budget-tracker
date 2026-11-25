@@ -1,7 +1,7 @@
 import "server-only";
 import { db, schema } from "@/server/db";
 
-const EXPENSE = ["Food & dining", "Groceries", "Transport", "Rent", "Bills & utilities", "EMI", "Shopping", "Health", "Entertainment", "Travel", "Other"];
+const EXPENSE = ["Food & dining", "Groceries", "Transport", "Rent", "Bills & utilities", "EMI", "Shopping", "Health", "Entertainment", "Travel", "Investments", "Other"];
 const INCOME = ["Salary", "Other income"];
 
 /** Runs once when a user is created: a personal workspace, a Cash account and starter categories. */

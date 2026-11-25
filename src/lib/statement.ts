@@ -4,7 +4,7 @@ export type Mapping = { date: number; narration: number; debit: number | null; c
 export type StatementRow = { date: string; kind: "income" | "expense"; amount: number; narration: string; ref: string | null };
 
 const has = (s: string, words: string[]) => words.some((w) => s.includes(w));
-const clean = (s: unknown) => String(s ?? "").trim().toLowerCase();
+const clean = (s: unknown) => String(s ?? "").trim().toLowerCase().replace(/\s*\/\s*/g, "/");
 
 const KEYS = {
   date: ["date", "txn date", "value dt", "tran date"],
@@ -41,7 +41,8 @@ export function guessMapping(header: string[]): Mapping | null {
   const credit = find(KEYS.credit);
   const amount = debit === null && credit === null ? find(KEYS.amount) : null;
   if (debit === null && credit === null && amount === null) return null;
-  const drCr = amount !== null ? find(KEYS.drCr) : null;
+  // The flag belongs to the amount: take the first Dr/Cr column after it (a second one often follows the balance).
+  const drCr = amount !== null ? (cells.findIndex((c, i) => i > amount && has(c, KEYS.drCr)) >= 0 ? cells.findIndex((c, i) => i > amount && has(c, KEYS.drCr)) : null) : null;
   const ref = find(KEYS.ref, [narration]);
   return { date, narration, debit, credit, amount, drCr, ref };
 }

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireWorkspace } from "@/server/session";
 import { createAccount, createTransaction, deleteTransaction, listAccounts } from "@/server/services/ledger";
+import { autoMatch } from "@/server/services/commitments";
 import { CURRENCIES, toMinor } from "@/lib/money";
 
 export type FormState = { error?: string; ok?: boolean };
@@ -34,6 +35,7 @@ export async function addTransaction(_: FormState, fd: FormData): Promise<FormSt
     const amountMinor = toMinor(amount, acct.currency);
     if (!amountMinor) return { error: "enter an amount above zero" };
     await createTransaction(workspace.id, { ...rest, amountMinor, fxRateToHome: fx }, workspace.homeCurrency);
+    await autoMatch(workspace.id);
   } catch (e) {
     return { error: e instanceof Error ? e.message : "could not save" };
   }

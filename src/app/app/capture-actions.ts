@@ -33,14 +33,14 @@ const rowSchema = z.object({
   ref: z.string().max(100).nullable(),
 });
 
-export async function importAction(accountId: string, filename: string, rows: StatementRow[]): Promise<CaptureState & { added?: number; duplicates?: number }> {
+export async function importAction(accountId: string, filename: string, rows: StatementRow[]): Promise<CaptureState & { added?: number; merged?: number; duplicates?: number }> {
   const { workspace } = await requireWorkspace();
   const parsed = z.array(rowSchema).max(20000).safeParse(rows);
   if (!parsed.success) return { error: "that file has rows the importer could not read" };
   try {
     const r = await importStatement(workspace.id, workspace.homeCurrency, accountId, filename, parsed.data);
     refresh();
-    return { added: r.added, duplicates: r.duplicates };
+    return { added: r.added, merged: r.merged, duplicates: r.duplicates };
   } catch (e) { return fail(e); }
 }
 

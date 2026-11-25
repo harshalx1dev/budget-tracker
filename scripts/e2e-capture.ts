@@ -8,7 +8,11 @@ import { toStatementRows, findHeaderRow, guessMapping } from "@/lib/statement";
 const ok = (c: unknown, m: string) => { if (!c) { console.error("FAIL", m); process.exitCode = 1; } else console.log("ok  ", m); };
 
 async function main() {
-const [m] = await db.select().from(schema.workspaceMembers).limit(1);
+// Safety: this script deletes data, so it only ever touches the dedicated test account's workspace.
+const TEST_EMAIL = "tester@budget.test";
+const [m] = await db.select({ workspaceId: schema.workspaceMembers.workspaceId }).from(schema.workspaceMembers)
+  .innerJoin(schema.user, eq(schema.user.id, schema.workspaceMembers.userId)).where(eq(schema.user.email, TEST_EMAIL));
+if (!m) { console.error(`no ${TEST_EMAIL} account; sign up that test user first. Refusing to run.`); process.exit(1); }
 const ws = m.workspaceId;
 // Clean slate so the script can be re-run: drop earlier test rows, batches and rules.
 await db.delete(schema.transactions).where(eq(schema.transactions.workspaceId, ws));

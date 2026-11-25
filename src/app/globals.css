@@ -159,3 +159,7 @@ h1, h2, h3, .btn, .pill, .label, .nav a { text-transform: lowercase; }
 .pill:disabled { opacity: 0.45; cursor: not-allowed; }
 .input--sm { min-height: 36px; width: auto; }
 @media (max-width: 40rem) { .quick { grid-template-columns: minmax(0, 1fr); } .topbar .nav .pill { padding: 0 var(--space-xs); } }
+
+/* commitments */
+.match-now { display: inline-flex; align-items: center; gap: var(--space-md); flex-wrap: wrap; }
+.ledger tr[data-past="true"] td { color: var(--color-muted); }

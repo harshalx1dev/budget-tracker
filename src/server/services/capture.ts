@@ -1,13 +1,14 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { db, schema } from "@/server/db";
 import { listAccounts } from "@/server/services/ledger";
 import { matchRule, type Rule } from "@/lib/categorize";
 import { normalizePayee, readNarration } from "@/lib/narration";
 import { parseQuickAdd } from "@/lib/quick-add";
 import { exponent } from "@/lib/money";
-import { todayISO } from "@/lib/dates";
+import { daysBetween, shiftDays, todayISO } from "@/lib/dates";
+import { autoMatch } from "@/server/services/commitments";
 import type { StatementRow } from "@/lib/statement";
 
 const { accounts, categories, categoryRules, importBatches, transactions } = schema;
@@ -67,6 +68,7 @@ export async function quickAdd(workspaceId: string, homeCurrency: string, input:
     workspaceId, accountId: acct.id, categoryId, kind: parsed.kind, amountMinor, currency: acct.currency,
     payee: parsed.text || null, occurredOn: parsed.date, source: "quick", status: categoryId ? "confirmed" : "pending",
   });
+  await autoMatch(workspaceId);
   return { amountMinor, currency: acct.currency, account: acct.name, date: parsed.date, text: parsed.text, categorised: Boolean(categoryId) };
 }
 
@@ -99,14 +101,54 @@ export async function importStatement(workspaceId: string, homeCurrency: string,
     };
   });
 
+  // 1) Lines already imported (same hash) are skipped, which makes re-imports and overlaps safe.
+  const hashes = values.map((v) => v.importHash);
+  const have = new Set(
+    (await db.select({ h: transactions.importHash }).from(transactions)
+      .where(and(eq(transactions.workspaceId, workspaceId), eq(transactions.accountId, accountId), inArray(transactions.importHash, hashes)))).map((r) => r.h),
+  );
+  const fresh = values.filter((v) => !have.has(v.importHash));
+
+  // 2) A statement line may be the same spend you already quick-added: pair it with that row (same kind and
+  //    amount, within 3 days) and enrich it in place, so it is neither duplicated nor loses your category.
+  const merges: { id: string; v: (typeof values)[number] }[] = [];
+  let toInsert = fresh;
+  if (fresh.length) {
+    const dates = fresh.map((v) => v.occurredOn).sort();
+    const loose = await db.select({ id: transactions.id, kind: transactions.kind, amountMinor: transactions.amountMinor, occurredOn: transactions.occurredOn })
+      .from(transactions)
+      .where(and(eq(transactions.workspaceId, workspaceId), eq(transactions.accountId, accountId), isNull(transactions.importHash), isNull(transactions.transferId),
+        inArray(transactions.source, ["manual", "quick"]), gte(transactions.occurredOn, shiftDays(dates[0], -3)), lte(transactions.occurredOn, shiftDays(dates.at(-1)!, 3))));
+    const used = new Set<string>();
+    toInsert = [];
+    for (const v of fresh) {
+      let best: { id: string; gap: number } | null = null;
+      for (const c of loose) {
+        if (used.has(c.id) || c.kind !== v.kind || c.amountMinor !== v.amountMinor) continue;
+        const gap = Math.abs(daysBetween(v.occurredOn, c.occurredOn));
+        if (gap <= 3 && (!best || gap < best.gap)) best = { id: c.id, gap };
+      }
+      if (best) { used.add(best.id); merges.push({ id: best.id, v }); } else toInsert.push(v);
+    }
+  }
+
   const [batch] = await db.insert(importBatches).values({ workspaceId, accountId, filename: filename.slice(0, 120), rowCount: rows.length, addedCount: 0, duplicateCount: 0 }).returning();
+  if (merges.length) {
+    const vals = sql.join(merges.map(({ id, v }) => sql`(${id}, ${v.importHash}, ${v.rawNarration}, ${v.categoryId}::text)`), sql`, `);
+    await db.execute(sql`
+      update transactions t set import_hash = m.h, raw_narration = m.r, import_batch_id = ${batch.id}, category_id = coalesce(t.category_id, m.c),
+        status = case when coalesce(t.category_id, m.c) is not null then 'confirmed'::tx_status else t.status end
+      from (values ${vals}) as m(id, h, r, c) where t.id = m.id and t.workspace_id = ${workspaceId}`);
+  }
   let added = 0;
-  for (let i = 0; i < values.length; i += 500) {
-    const res = await db.insert(transactions).values(values.slice(i, i + 500).map((v) => ({ ...v, importBatchId: batch.id }))).onConflictDoNothing().returning({ id: transactions.id });
+  for (let i = 0; i < toInsert.length; i += 500) {
+    const res = await db.insert(transactions).values(toInsert.slice(i, i + 500).map((v) => ({ ...v, importBatchId: batch.id }))).onConflictDoNothing().returning({ id: transactions.id });
     added += res.length;
   }
-  await db.update(importBatches).set({ addedCount: added, duplicateCount: rows.length - added }).where(eq(importBatches.id, batch.id));
-  return { total: rows.length, added, duplicates: rows.length - added };
+  const duplicates = rows.length - added - merges.length;
+  await db.update(importBatches).set({ addedCount: added, duplicateCount: duplicates }).where(eq(importBatches.id, batch.id));
+  await autoMatch(workspaceId);
+  return { total: rows.length, added, merged: merges.length, duplicates };
 }
 
 /* ---------- review inbox ---------- */

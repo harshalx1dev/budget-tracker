@@ -21,7 +21,7 @@ const FIELDS: { key: keyof Mapping; label: string; optional?: boolean }[] = [
 export function ImportForm({ accounts }: { accounts: Acct[] }) {
   const [p, setP] = useState<Parsed | null>(null);
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
-  const [msg, setMsg] = useState<{ error?: string; added?: number; duplicates?: number } | null>(null);
+  const [msg, setMsg] = useState<{ error?: string; added?: number; merged?: number; duplicates?: number } | null>(null);
   const [busy, start] = useTransition();
 
   function onFile(file: File) {
@@ -53,7 +53,7 @@ export function ImportForm({ accounts }: { accounts: Acct[] }) {
       {msg?.error && <p role="alert" className="error">{msg.error}</p>}
       {msg?.added !== undefined && (
         <p role="status" className="well" style={{ padding: "var(--space-lg)" }}>
-          added {msg.added} new, skipped {msg.duplicates} already imported. <Link href="/app/inbox" className="link">review the inbox</Link>
+          added {msg.added} new{msg.merged ? `, matched ${msg.merged} to entries you had already added` : ""}, skipped {msg.duplicates} already imported. <Link href="/app/inbox" className="link">review the inbox</Link>
         </p>
       )}
       {p && (

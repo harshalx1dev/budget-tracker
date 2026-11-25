@@ -8,8 +8,9 @@ import { ThemeToggle } from "./theme-toggle";
 
 const LINKS = [
   { href: "/app", label: "overview" },
-  { href: "/app/transactions", label: "transactions" },
+  { href: "/app/transactions", label: "ledger" },
   { href: "/app/inbox", label: "inbox" },
+  { href: "/app/commitments", label: "plan" },
   { href: "/app/accounts", label: "accounts" },
   { href: "/app/settings", label: "settings" },
 ];

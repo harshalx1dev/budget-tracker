@@ -149,3 +149,70 @@ export const categoryRules = pgTable("category_rules", {
   source: ruleSource("source").notNull().default("manual"),
   createdAt: createdAt(),
 }, (t) => [uniqueIndex("category_rules_pattern_uq").on(t.workspaceId, t.pattern)]);
+
+/* Commitments: loans/EMIs and recurring rules. Expected payments are computed, not stored; only matches are. */
+export const frequency = pgEnum("frequency", ["weekly", "monthly", "yearly"]);
+export const revisionKind = pgEnum("revision_kind", ["emi", "rate", "prepayment"]);
+export const expectedSource = pgEnum("expected_source", ["loan", "rule"]);
+
+export const loans = pgTable("loans", {
+  id: id(),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  accountId: text("account_id").references(() => accounts.id, { onDelete: "set null" }),
+  categoryId: text("category_id").references(() => categories.id, { onDelete: "set null" }),
+  name: text("name").notNull(),
+  lender: text("lender"),
+  emiMinor: money("emi_minor").notNull(), // the lender's figure as given
+  firstDueOn: date("first_due_on").notNull(),
+  instalments: integer("instalments").notNull(), // remaining, counted from first_due_on
+  principalMinor: money("principal_minor"), // optional: balance before the first listed instalment
+  annualRatePct: numeric("annual_rate_pct", { precision: 7, scale: 4 }),
+  matchPattern: text("match_pattern"),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
+  createdAt: createdAt(),
+}, (t) => [index("loans_workspace_idx").on(t.workspaceId)]);
+
+export const loanRevisions = pgTable("loan_revisions", {
+  id: id(),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  loanId: text("loan_id").notNull().references(() => loans.id, { onDelete: "cascade" }),
+  effectiveOn: date("effective_on").notNull(),
+  kind: revisionKind("kind").notNull(),
+  emiMinor: money("emi_minor"),
+  ratePct: numeric("rate_pct", { precision: 7, scale: 4 }),
+  amountMinor: money("amount_minor"),
+  note: text("note"),
+  createdAt: createdAt(),
+}, (t) => [index("loan_revisions_loan_idx").on(t.loanId)]);
+
+export const recurringRules = pgTable("recurring_rules", {
+  id: id(),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  accountId: text("account_id").references(() => accounts.id, { onDelete: "set null" }),
+  categoryId: text("category_id").references(() => categories.id, { onDelete: "set null" }),
+  name: text("name").notNull(),
+  kind: txKind("kind").notNull(),
+  amountMinor: money("amount_minor").notNull(),
+  frequency: frequency("frequency").notNull(),
+  intervalCount: integer("interval_count").notNull().default(1),
+  startOn: date("start_on").notNull(),
+  endOn: date("end_on"),
+  maxCount: integer("max_count"),
+  matchPattern: text("match_pattern"),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
+  createdAt: createdAt(),
+}, (t) => [index("recurring_rules_workspace_idx").on(t.workspaceId)]);
+
+// One expected payment pairs with at most one transaction, and a transaction pays at most one occurrence.
+export const expectedMatches = pgTable("expected_matches", {
+  id: id(),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  sourceKind: expectedSource("source_kind").notNull(),
+  sourceId: text("source_id").notNull(),
+  dueOn: date("due_on").notNull(),
+  transactionId: text("transaction_id").notNull().references(() => transactions.id, { onDelete: "cascade" }),
+  createdAt: createdAt(),
+}, (t) => [
+  uniqueIndex("expected_matches_occurrence_uq").on(t.sourceKind, t.sourceId, t.dueOn),
+  uniqueIndex("expected_matches_tx_uq").on(t.transactionId),
+]);
