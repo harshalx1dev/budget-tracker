@@ -21,6 +21,7 @@ export function AccountForm({ homeCurrency }: { homeCurrency: string }) {
         <select name="currency" className="input" defaultValue={homeCurrency}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select>
       </label>
       <label className="field"><span className="label">opening balance</span><input name="opening" inputMode="decimal" placeholder="0" className="input" /></label>
+      <label className="field"><span className="label">quick-add words</span><input name="aliases" maxLength={80} placeholder="upi, gpay" className="input" /></label>
       <div className="tx-form__end">
         {state.error && <p role="alert" className="error">{state.error}</p>}
         <button className="btn btn--primary" disabled={pending}><Plus size={16} aria-hidden /> add account</button>

@@ -1,10 +1,10 @@
 import "server-only";
-import { and, desc, eq, gte, lt, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lt, sql } from "drizzle-orm";
 import { db, schema } from "@/server/db";
 
 const { accounts, categories, transactions } = schema;
 
-export type NewAccount = { name: string; type: (typeof accounts.$inferInsert)["type"]; currency: string; openingBalanceMinor: number };
+export type NewAccount = { name: string; type: (typeof accounts.$inferInsert)["type"]; currency: string; openingBalanceMinor: number; aliases: string[] };
 export type NewTransaction = {
   accountId: string;
   categoryId: string | null;
@@ -20,7 +20,7 @@ export async function listAccounts(workspaceId: string) {
   // Balance = opening + income - expense, in the account's own currency.
   const bal = sql<number>`${accounts.openingBalanceMinor} + coalesce(sum(case when ${transactions.kind} = 'income' then ${transactions.amountMinor} else -${transactions.amountMinor} end), 0)`.mapWith(Number);
   return db
-    .select({ id: accounts.id, name: accounts.name, type: accounts.type, currency: accounts.currency, balanceMinor: bal })
+    .select({ id: accounts.id, name: accounts.name, type: accounts.type, currency: accounts.currency, aliases: accounts.aliases, balanceMinor: bal })
     .from(accounts)
     .leftJoin(transactions, eq(transactions.accountId, accounts.id))
     .where(eq(accounts.workspaceId, workspaceId))
@@ -46,6 +46,8 @@ export async function listTransactions(workspaceId: string, limit = 100) {
       payee: transactions.payee,
       note: transactions.note,
       occurredOn: transactions.occurredOn,
+      status: transactions.status,
+      transferId: transactions.transferId,
       account: accounts.name,
       category: categories.name,
     })
@@ -65,7 +67,7 @@ export async function monthSummary(workspaceId: string, homeCurrency: string, mo
   const rows = await db
     .select({ kind: transactions.kind, amountMinor: transactions.amountMinor, currency: transactions.currency, fx: transactions.fxRateToHome })
     .from(transactions)
-    .where(and(eq(transactions.workspaceId, workspaceId), gte(transactions.occurredOn, start), lt(transactions.occurredOn, end)));
+    .where(and(eq(transactions.workspaceId, workspaceId), gte(transactions.occurredOn, start), lt(transactions.occurredOn, end), isNull(transactions.transferId)));
   let income = 0;
   let expense = 0;
   for (const r of rows) {
@@ -94,5 +96,8 @@ export async function createTransaction(workspaceId: string, t: NewTransaction, 
 }
 
 export async function deleteTransaction(workspaceId: string, id: string) {
-  await db.delete(transactions).where(and(eq(transactions.id, id), eq(transactions.workspaceId, workspaceId)));
+  const [tx] = await db.select({ transferId: transactions.transferId }).from(transactions).where(and(eq(transactions.id, id), eq(transactions.workspaceId, workspaceId)));
+  // A transfer is two legs; removing one removes both so balances never drift.
+  const target = tx?.transferId ? eq(transactions.transferId, tx.transferId) : eq(transactions.id, id);
+  await db.delete(transactions).where(and(target, eq(transactions.workspaceId, workspaceId)));
 }

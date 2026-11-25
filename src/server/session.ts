@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { auth } from "@/server/auth";
 import { db, schema } from "@/server/db";
+import { createPersonalWorkspace } from "@/server/services/workspace";
 
 export type CurrentUser = { id: string; name: string; email: string };
 export type Workspace = { id: string; name: string; homeCurrency: string };
@@ -20,15 +21,22 @@ export async function requireUser() {
   return u;
 }
 
-/** The signed-in user's workspace. Every service takes this id; nothing reads data without it. */
-export const requireWorkspace = cache(async (): Promise<{ user: CurrentUser; workspace: Workspace }> => {
-  const user = await requireUser();
-  const [row] = await db
+const findWorkspace = (userId: string) =>
+  db
     .select({ id: schema.workspaces.id, name: schema.workspaces.name, homeCurrency: schema.workspaces.homeCurrency })
     .from(schema.workspaceMembers)
     .innerJoin(schema.workspaces, eq(schema.workspaces.id, schema.workspaceMembers.workspaceId))
-    .where(eq(schema.workspaceMembers.userId, user.id))
+    .where(eq(schema.workspaceMembers.userId, userId))
     .limit(1);
-  if (!row) redirect("/login");
+
+/** The signed-in user's workspace. Every service takes this id; nothing reads data without it. */
+export const requireWorkspace = cache(async (): Promise<{ user: CurrentUser; workspace: Workspace }> => {
+  const user = await requireUser();
+  let [row] = await findWorkspace(user.id);
+  if (!row) {
+    // The sign-up hook can fail after the user row is written; heal instead of looping to /login.
+    await createPersonalWorkspace(user.id, user.name.split(" ")[0] || "My");
+    [row] = await findWorkspace(user.id);
+  }
   return { user, workspace: row };
 });

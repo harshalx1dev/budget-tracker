@@ -1,11 +1,14 @@
+import { Suspense } from "react";
+import { PageSkeleton } from "@/components/page-skeleton";
 import { requireWorkspace } from "@/server/session";
 import { listAccounts, listCategories, listTransactions, monthSummary } from "@/server/services/ledger";
 import { formatMinor } from "@/lib/money";
 import { thisMonth } from "@/lib/dates";
+import { QuickAddBar } from "@/components/quick-add-bar";
 import { TransactionForm } from "@/components/transaction-form";
 import { LedgerTable } from "@/components/ledger-table";
 
-export default async function Overview() {
+async function OverviewLoader() {
   const { workspace } = await requireWorkspace();
   const home = workspace.homeCurrency;
   const [accounts, categories, recent, month] = await Promise.all([
@@ -36,13 +39,25 @@ export default async function Overview() {
       </section>
       {hasForeign && <p className="label">balance counts {home} accounts only until exchange rates arrive.</p>}
       <section aria-labelledby="add-h" className="stack-sm">
-        <h2 id="add-h">add entry</h2>
+        <h2 id="add-h">quick add</h2>
+        <QuickAddBar />
+        <details className="more">
+          <summary className="pill">full form</summary>
         <TransactionForm accounts={accounts} categories={categories} homeCurrency={home} />
+        </details>
       </section>
       <section className="well" aria-labelledby="ledger-h">
         <h2 id="ledger-h" className="well__head">recent</h2>
         <LedgerTable rows={recent} empty="Add your first entry above. Income and spending land here, newest first." />
       </section>
     </div>
+  );
+}
+
+export default function Overview() {
+  return (
+    <Suspense fallback={<PageSkeleton />}>
+      <OverviewLoader />
+    </Suspense>
   );
 }

@@ -1,4 +1,4 @@
-import { bigint, boolean, date, index, numeric, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { bigint, boolean, date, index, integer, numeric, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 const id = () => text("id").primaryKey().$defaultFn(() => crypto.randomUUID());
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
@@ -73,6 +73,9 @@ export const workspaceMembers = pgTable("workspace_members", {
 /* Ledger */
 export const accountType = pgEnum("account_type", ["cash", "bank", "card", "wallet"]);
 export const txKind = pgEnum("tx_kind", ["income", "expense"]);
+// pending = imported or quick-added without a trusted category; shows in the review inbox.
+export const txStatus = pgEnum("tx_status", ["pending", "confirmed"]);
+export const txSource = pgEnum("tx_source", ["manual", "quick", "import", "reconcile"]);
 
 export const accounts = pgTable("accounts", {
   id: id(),
@@ -80,6 +83,8 @@ export const accounts = pgTable("accounts", {
   name: text("name").notNull(),
   type: accountType("type").notNull(),
   currency: text("currency").notNull().default("INR"),
+  // Words that route quick-add entries here, e.g. ["upi", "gpay"].
+  aliases: text("aliases").array().notNull().default([]),
   openingBalanceMinor: money("opening_balance_minor").notNull().default(0),
   archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: createdAt(),
@@ -106,6 +111,41 @@ export const transactions = pgTable("transactions", {
   payee: text("payee"),
   note: text("note"),
   occurredOn: date("occurred_on").notNull(),
+  status: txStatus("status").notNull().default("confirmed"),
+  source: txSource("source").notNull().default("manual"),
+  tags: text("tags").array().notNull().default([]),
+  // Both legs of a transfer share one transfer_id; transfers are excluded from income/expense totals.
+  transferId: text("transfer_id"),
+  importBatchId: text("import_batch_id").references(() => importBatches.id, { onDelete: "set null" }),
+  importHash: text("import_hash"),
+  rawNarration: text("raw_narration"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
-}, (t) => [index("transactions_workspace_date_idx").on(t.workspaceId, t.occurredOn)]);
+}, (t) => [
+  index("transactions_workspace_date_idx").on(t.workspaceId, t.occurredOn),
+  index("transactions_transfer_idx").on(t.transferId),
+  index("transactions_status_idx").on(t.workspaceId, t.status),
+  uniqueIndex("transactions_import_hash_uq").on(t.workspaceId, t.accountId, t.importHash),
+]);
+
+export const importBatches = pgTable("import_batches", {
+  id: id(),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  accountId: text("account_id").notNull().references(() => accounts.id, { onDelete: "cascade" }),
+  filename: text("filename").notNull(),
+  rowCount: integer("row_count").notNull(),
+  addedCount: integer("added_count").notNull(),
+  duplicateCount: integer("duplicate_count").notNull(),
+  createdAt: createdAt(),
+});
+
+// A rule maps text found in payee or narration to a category. "learned" rules come from corrections.
+export const ruleSource = pgEnum("rule_source", ["manual", "learned"]);
+export const categoryRules = pgTable("category_rules", {
+  id: id(),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  pattern: text("pattern").notNull(), // lowercase, matched as a substring
+  categoryId: text("category_id").notNull().references(() => categories.id, { onDelete: "cascade" }),
+  source: ruleSource("source").notNull().default("manual"),
+  createdAt: createdAt(),
+}, (t) => [uniqueIndex("category_rules_pattern_uq").on(t.workspaceId, t.pattern)]);

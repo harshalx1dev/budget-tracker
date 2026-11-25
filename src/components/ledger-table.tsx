@@ -23,7 +23,7 @@ export function LedgerTable({ rows, empty }: { rows: Row[]; empty: string }) {
             <tr key={r.id}>
               <td>{formatDay(r.occurredOn)}</td>
               <td>{r.payee || r.note || "—"}{r.payee && r.note ? <span className="label"> {r.note}</span> : null}</td>
-              <td>{r.category ?? "—"}</td>
+              <td>{r.transferId ? "transfer" : r.category ?? (r.status === "pending" ? "needs review" : "—")}</td>
               <td>{r.account}</td>
               <td className="num amt" data-kind={r.kind}>{formatMinor(r.kind === "income" ? r.amountMinor : -r.amountMinor, r.currency, { sign: true })}</td>
               <td><DeleteButton id={r.id} /></td>

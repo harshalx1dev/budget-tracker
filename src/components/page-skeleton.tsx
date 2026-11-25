@@ -1,4 +1,4 @@
-export default function Loading() {
+export function PageSkeleton() {
   return (
     <div className="stack" aria-busy="true" aria-label="loading">
       <div className="skeleton" style={{ width: "30%", height: 28 }} />

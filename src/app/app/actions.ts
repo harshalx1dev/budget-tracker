@@ -52,6 +52,7 @@ const accountSchema = z.object({
   type: z.enum(["cash", "bank", "card", "wallet"]),
   currency: z.enum(CURRENCIES),
   opening: z.string().trim(),
+  aliases: z.string().trim().max(80).transform((s) => s.toLowerCase().split(/[\s,]+/).filter(Boolean)),
 });
 
 export async function addAccount(_: FormState, fd: FormData): Promise<FormState> {
