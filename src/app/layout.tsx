@@ -3,6 +3,8 @@ import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
 import { Providers } from "@/components/providers";
 import { Intro } from "@/components/intro";
+import { ThemePicker } from "@/components/theme-picker";
+import { PALETTE_KEY } from "@/lib/palettes";
 import { NavProgress } from "@/components/nav-progress";
 import { BRAND } from "@/lib/brand";
 import "./globals.css";
@@ -28,10 +30,15 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${geist.variable} ${geistMono.variable} ${bricolage.variable}`} suppressHydrationWarning>
+      <head>
+        {/* the chosen colour theme goes on before first paint, so the default never flashes */}
+        <script dangerouslySetInnerHTML={{ __html: `try{var p=localStorage.getItem("${PALETTE_KEY}");if(p&&p!=="passbook")document.documentElement.dataset.palette=p}catch(e){}` }} />
+      </head>
       <body>
         <Intro />
         <Suspense><NavProgress /></Suspense>
         <Providers>{children}</Providers>
+        <ThemePicker />
       </body>
     </html>
   );

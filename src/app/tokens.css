@@ -40,6 +40,8 @@
   --color-side-ink: #e3ede8;
   --color-side-muted: #9db5aa;
   --color-side-rule: rgb(255 255 255 / 0.09);
+  --color-glint: #d6b36a;
+  --color-glint-ink: #1b1405;
 
   --font-outlier: var(--font-geist-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
 
