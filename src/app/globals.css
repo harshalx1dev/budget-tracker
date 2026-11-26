@@ -146,7 +146,7 @@
 .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap-columns); }
 .stats .stat { grid-column: span 1; }
 .stats .stat[data-tone] { grid-column: span 2; }
-.stats .stat:not(.stat--hero) .figure { font-size: clamp(1.5rem, 2.4vw, 1.875rem); }
+.stats .stat:not(.stat--hero) .figure { font-size: clamp(1.2rem, 1.9vw, 1.55rem); overflow-wrap: anywhere; }
 @media (max-width: 60rem) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .stats .stat[data-tone] { grid-column: span 1; } }
 @media (max-width: 30rem) { .stats { grid-template-columns: minmax(0, 1fr); } .stats .stat, .stats .stat[data-tone], .stats .stat.stat--hero { grid-column: auto; } }
 .stat { position: relative; padding: var(--space-lg); display: grid; align-content: start; transition: transform var(--dur-short) var(--ease-out), box-shadow var(--dur-short) var(--ease-out); }
