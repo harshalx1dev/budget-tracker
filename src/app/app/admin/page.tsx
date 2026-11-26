@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { Activity, Plug, Sparkles, Users } from "lucide-react";
 import { count, desc, eq, gte, sql } from "drizzle-orm";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { db, schema } from "@/server/db";
@@ -42,11 +43,11 @@ async function AdminLoader() {
       <p className="label">You see accounts and usage totals only, never anyone&apos;s entries.</p>
 
       <section className="stats" aria-label="Totals">
-        {stats.map(([label, value]) => <div key={label} className="stat well raised"><p className="label">{label}</p><p className="figure">{value}</p></div>)}
+        {stats.map(([label, value], i) => { const Icon = [Users, Activity, Sparkles, Plug][i % 4]; return <div key={label} className="stat well"><div className="stat__top"><p className="label">{label}</p><span className="stat__icon"><Icon size={18} aria-hidden /></span></div><p className="figure">{value}</p></div>; })}
       </section>
 
       <section className="stack-sm" aria-labelledby="ai-h">
-        <h2 id="ai-h">Ai use, last 7 days</h2>
+        <h2 id="ai-h">AI use, last 7 days</h2>
         {ai.length === 0 ? <div className="well empty"><h3>No AI calls yet</h3><p>Calls show here by feature once people use them.</p></div> : (
           <div className="well table-wrap">
             <table className="ledger">

@@ -1,3 +1,4 @@
+import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, ReceiptText } from "lucide-react";
 import { formatMinor } from "@/lib/money";
 import { formatDay } from "@/lib/dates";
 import { DeleteButton } from "./delete-button";
@@ -9,6 +10,7 @@ export function LedgerTable({ rows, empty }: { rows: Row[]; empty: string }) {
   if (!rows.length) {
     return (
       <div className="empty">
+        <span className="stat__icon stat__icon--lg"><ReceiptText size={22} aria-hidden /></span>
         <h3>Nothing recorded yet</h3>
         <p>{empty}</p>
       </div>
@@ -22,7 +24,7 @@ export function LedgerTable({ rows, empty }: { rows: Row[]; empty: string }) {
           {rows.map((r) => (
             <tr key={r.id}>
               <td>{formatDay(r.occurredOn)}</td>
-              <td>{r.payee || r.note || "—"}{r.payee && r.note ? <span className="label"> {r.note}</span> : null}</td>
+              <td><span className="what"><span className="what__icon" data-kind={r.transferId ? "transfer" : r.kind} aria-hidden>{r.transferId ? <ArrowLeftRight size={14} /> : r.kind === "income" ? <ArrowDownLeft size={14} /> : <ArrowUpRight size={14} />}</span><span>{r.payee || r.note || "—"}{r.payee && r.note ? <span className="label"> {r.note}</span> : null}</span></span></td>
               <td>{r.transferId ? "Transfer" : r.category ?? (r.status === "pending" ? "Needs review" : "—")}</td>
               <td>{r.account}</td>
               <td className="num amt" data-kind={r.kind}>{formatMinor(r.kind === "income" ? r.amountMinor : -r.amountMinor, r.currency, { sign: true })}</td>

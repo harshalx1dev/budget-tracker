@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { Banknote, CalendarClock, Percent } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageSkeleton } from "@/components/page-skeleton";
@@ -26,9 +27,9 @@ async function LoanLoader({ params }: { params: Promise<{ id: string }> }) {
     <div className="settle stack">
       <div className="head-row"><h1>{loan.name}</h1><Link href="/app/plan/commitments" className="btn btn--secondary">All commitments</Link></div>
       <section className="stats" aria-label="Loan summary">
-        <div className="stat well raised"><p className="label">EMI</p><p className="figure">{formatMinor(loan.emiMinor, home)}</p></div>
-        <div className="stat well raised"><p className="label">Instalments left</p><p className="figure">{rows.filter((r) => r.dueOn >= today).length}</p></div>
-        <div className="stat well raised"><p className="label">{hasBalance ? "Interest still to pay" : "Last instalment"}</p><p className="figure">{totalInterest !== null ? formatMinor(totalInterest, home) : rows.at(-1) ? formatDayYear(rows.at(-1)!.dueOn) : "—"}</p></div>
+        <div className="stat well"><div className="stat__top"><p className="label">EMI</p><span className="stat__icon"><Banknote size={18} aria-hidden /></span></div><p className="figure">{formatMinor(loan.emiMinor, home)}</p></div>
+        <div className="stat well"><div className="stat__top"><p className="label">Instalments left</p><span className="stat__icon"><CalendarClock size={18} aria-hidden /></span></div><p className="figure">{rows.filter((r) => r.dueOn >= today).length}</p></div>
+        <div className="stat well"><div className="stat__top"><p className="label">{hasBalance ? "Interest still to pay" : "Last instalment"}</p><span className="stat__icon"><Percent size={18} aria-hidden /></span></div><p className="figure">{totalInterest !== null ? formatMinor(totalInterest, home) : rows.at(-1) ? formatDayYear(rows.at(-1)!.dueOn) : "—"}</p></div>
       </section>
       {stalled && <p role="alert" className="error">At this EMI and rate the loan never pays down. Check the EMI or the rate.</p>}
       {!hasBalance && <p className="label">Add the balance left and the rate to the loan to see the interest and principal split. Everything else, including the plan, already works.</p>}

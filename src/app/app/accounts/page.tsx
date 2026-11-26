@@ -3,7 +3,8 @@ import { PageSkeleton } from "@/components/page-skeleton";
 import { requireWorkspace } from "@/server/session";
 import { listAccounts } from "@/server/services/ledger";
 import { formatMinor } from "@/lib/money";
-import { TYPE_LABELS } from "@/lib/savings";
+import { isAssetType, TYPE_LABELS } from "@/lib/savings";
+import { CreditCard, Landmark, TrendingUp, Wallet } from "lucide-react";
 import { TransferForm, ReconcileForm } from "@/components/money-moves";
 import { AccountForm } from "@/components/account-form";
 
@@ -21,7 +22,7 @@ async function AccountsLoader() {
           <thead><tr><th>Name</th><th>Type</th><th className="num">Balance</th></tr></thead>
           <tbody>
             {accounts.map((a) => (
-              <tr key={a.id}><td>{a.name}</td><td>{TYPE_LABELS[a.type] ?? a.type}</td><td className="num">{formatMinor(a.balanceMinor, a.currency)}</td></tr>
+              <tr key={a.id}><td><span className="what"><span className="what__icon" data-kind="account" aria-hidden>{a.type === "cash" ? <Wallet size={14} /> : a.type === "card" ? <CreditCard size={14} /> : isAssetType(a.type) ? <TrendingUp size={14} /> : <Landmark size={14} />}</span>{a.name}</span></td><td>{TYPE_LABELS[a.type] ?? a.type}</td><td className="num">{formatMinor(a.balanceMinor, a.currency)}</td></tr>
             ))}
           </tbody>
         </table>

@@ -24,7 +24,7 @@ async function ForecastLoader() {
 
       <section className="stack-sm" aria-labelledby="sts-h">
         <h2 id="sts-h">Safe to spend</h2>
-        <div className="well sts">
+        <div className="well well--cloth sts">
           <div>
             <p className="label">Until {sts.incomeKnown && sts.nextIncome ? `payday on ${formatDay(sts.nextIncome)}` : "the end of the month"}</p>
             <p className="figure" data-negative={sts.safe < 0}>{formatMinor(sts.safe, home)}</p>

@@ -1,4 +1,6 @@
 import { Suspense } from "react";
+import { BellRing, Download, Plug, ShieldCheck, Sparkles, Tags, User, Wallet } from "lucide-react";
+import { SectionHead } from "@/components/section-head";
 import { PageSkeleton } from "@/components/page-skeleton";
 import Link from "next/link";
 import { AiKeyForm } from "@/components/ai-bits";
@@ -19,29 +21,29 @@ async function SettingsLoader() {
     <div className="settle stack">
       <h1>Settings</h1>
       <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
-        <h2>Account</h2>
+        <SectionHead icon={User}>Account</SectionHead>
         <p>{user.name} <span className="label">{user.email}</span></p>
       </section>
       {user.role === "admin" && (
         <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
-          <h2>Admin</h2>
+          <SectionHead icon={ShieldCheck}>Admin</SectionHead>
           <p><Link href="/app/admin" className="link">Accounts and usage across the app</Link></p>
         </section>
       )}
       <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
-        <h2>Ai</h2>
+        <SectionHead icon={Sparkles}>AI</SectionHead>
         <AiKeyForm connected={connected} usedToday={used} />
       </section>
       <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
-        <h2>Connect an agent</h2>
+        <SectionHead icon={Plug}>Connect an agent</SectionHead>
         <McpTokenCard endpoint={endpoint} tokens={tokens.map((t) => ({ id: t.id, name: t.name, prefix: t.prefix, write: t.scopes.includes("write"), state: tokenState(t), expiresAt: t.expiresAt?.toISOString() ?? null, lastUsedAt: t.lastUsedAt?.toISOString() ?? null }))} />
       </section>
       <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
-        <h2>Bill reminders</h2>
+        <SectionHead icon={BellRing}>Bill reminders</SectionHead>
         <RemindersCard />
       </section>
       <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
-        <h2>Export your data</h2>
+        <SectionHead icon={Download}>Export your data</SectionHead>
         <p className="label">Your data is yours. The CSV opens in any spreadsheet; the backup holds everything except passwords, keys and tokens.</p>
         <div className="inline-form">
           <a className="btn btn--secondary" href="/app/export/transactions" download>Transactions as CSV</a>
@@ -49,11 +51,11 @@ async function SettingsLoader() {
         </div>
       </section>
       <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
-        <h2>Categories and rules</h2>
+        <SectionHead icon={Tags}>Categories and rules</SectionHead>
         <p><Link href="/app/categories" className="link">Manage categories and auto-categorise rules</Link></p>
       </section>
       <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
-        <h2>Budget</h2>
+        <SectionHead icon={Wallet}>Budget</SectionHead>
         <p>{workspace.name} <span className="label">Home currency {workspace.homeCurrency}</span></p>
       </section>
     </div>
