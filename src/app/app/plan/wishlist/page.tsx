@@ -32,7 +32,7 @@ async function WishlistLoader() {
   return (
     <div className="settle stack">
       <h1>Wishlist</h1>
-      <p className="lead">Everything you want to buy, with links. The app works out what you can afford and when, using your forecast, your buffer and your existing EMIs.</p>
+      <p className="lead">What you want to buy, and when you can afford it.</p>
 
       <section className="stack-sm" aria-labelledby="ord-h">
         <h2 id="ord-h">What to buy, and when</h2>
@@ -77,7 +77,7 @@ async function WishlistLoader() {
 
       <section className="stack-sm" aria-labelledby="add-h">
         <h2 id="add-h">Add something</h2>
-        <details className="more"><summary className="pill">Add to wishlist</summary><WishForm categories={expense} /></details>
+        <details className="more"><summary className="btn btn--secondary">Add to wishlist</summary><WishForm categories={expense} /></details>
       </section>
 
       {active.length > 0 && (

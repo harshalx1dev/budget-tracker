@@ -42,14 +42,14 @@ async function OverviewLoader() {
     const pct = of > 0 ? Math.max(0, Math.min(1, safe / of)) : 0;
     return (
       <div>
-        <p className="figure">{formatMinor(safe, home)}</p>
+        <p className="figure">{safe < 0 ? `Short by ${formatMinor(-safe, home, { whole: true })}` : formatMinor(safe, home, { whole: true })}</p>
         <div className="meter" role="img" aria-label={`${Math.round(pct * 100)}% of ${ofWhat} is free to spend`}><div className="meter__fill" style={{ transform: `scaleX(${pct})` }} /></div>
         <p className="label" style={{ marginTop: "var(--space-sm)" }}><span className="pulse" aria-hidden />{safe > 0 ? `${formatMinor(perDay, home)} a day until ${until}` : "Nothing spare yet"}</p>
         <p className="label">{extra}</p>
       </div>
     );
   };
-  const monthNote = m.income === 0 ? `No money received since ${formatDay(m.cycleStart)}` : m.safe < 0 ? `Bills and goals are ${formatMinor(-m.safe, home)} more than this cycle's money` : m.capped ? "Limited by what your accounts hold" : `From ${formatMinor(m.income, home)} received since ${formatDay(m.cycleStart)}`;
+  const monthNote = m.income === 0 ? `No money received since ${formatDay(m.cycleStart)}` : m.safe < 0 ? `Bills still due (${formatMinor(sts.dueOutflows, home, { whole: true })}) and goals (${formatMinor(sts.goalSetAside, home, { whole: true })}) are more than what is left` : m.capped ? "Limited by what your accounts hold" : `From ${formatMinor(m.income, home)} received since ${formatDay(m.cycleStart)}`;
   const nwNote = nw.assetsMinor > 0 ? `${formatMinor(nw.assetsMinor, home)} saved and invested` : "Add savings under Plan";
 
   return (
@@ -65,21 +65,21 @@ async function OverviewLoader() {
         </div>
         <div className="stat well">
           <div className="stat__top"><p className="label">Balance</p><span className="stat__icon"><Landmark size={18} aria-hidden /></span></div>
-          <p className="figure">{formatMinor(balance, home)}</p>
+          <p className="figure">{formatMinor(balance, home, { whole: true })}</p>
         </div>
         <div className="stat well">
           <div className="stat__top"><p className="label">Net worth</p><span className="stat__icon"><PiggyBank size={18} aria-hidden /></span></div>
-          <p className="figure">{formatMinor(nw.netWorthMinor, home)}</p>
+          <p className="figure">{formatMinor(nw.netWorthMinor, home, { whole: true })}</p>
           <p className="label">{nwNote}</p>
         </div>
         <div className="stat well" data-tone="in">
           <div className="stat__top"><p className="label">In this month</p><span className="stat__icon"><ArrowDownLeft size={18} aria-hidden /></span></div>
-          <p className="figure">{formatMinor(month.income, home)}</p>
+          <p className="figure">{formatMinor(month.income, home, { whole: true })}</p>
           <Spark values={trend.map((t) => t.income)} />
         </div>
         <div className="stat well" data-tone="out">
           <div className="stat__top"><p className="label">Out this month</p><span className="stat__icon"><ArrowUpRight size={18} aria-hidden /></span></div>
-          <p className="figure">{formatMinor(month.expense, home)}</p>
+          <p className="figure">{formatMinor(month.expense, home, { whole: true })}</p>
           <Spark values={trend.map((t) => t.expense)} />
         </div>
       </section>

@@ -24,7 +24,7 @@ async function ForecastLoader() {
     <div className="sts">
       <div>
         <p className="label">{basis}, until {until}</p>
-        <p className="figure" data-negative={safe < 0}>{formatMinor(safe, home)}</p>
+        <p className="figure" data-negative={safe < 0}>{safe < 0 ? `Short by ${formatMinor(-safe, home, { whole: true })}` : formatMinor(safe, home, { whole: true })}</p>
         <p className="label">{safe > 0 ? `about ${formatMinor(perDay, home)} a day for ${sts.days} day${sts.days === 1 ? "" : "s"}` : "Nothing spare until the next payday"}</p>
       </div>
       <table className="ledger sts__break" aria-label="How this is worked out">

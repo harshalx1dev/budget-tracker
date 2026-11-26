@@ -1,5 +1,6 @@
 import { Suspense } from "react";
-import { Gem, HandCoins, TrendingUp, Wallet } from "lucide-react";
+import { HandCoins, TrendingUp, Wallet } from "lucide-react";
+import { Summary } from "@/components/summary";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { ForecastChart } from "@/components/forecast-chart";
 import { AssetForm, DepositForm, EmergencyForm, MaturityButtons, ValuationForm } from "@/components/savings-forms";
@@ -31,14 +32,12 @@ async function SavingsLoader() {
   return (
     <div className="settle stack">
       <h1>Savings</h1>
-      <p className="lead">What you have put away, what it is worth, and whether your safety net is big enough. Savings and investments never count toward what is safe to spend.</p>
-
-      <section className="stats" aria-label="Net worth">
-        <div className="stat well"><div className="stat__top"><p className="label">Net worth</p><span className="stat__icon"><Gem size={18} aria-hidden /></span></div><p className="figure">{formatMinor(nw.netWorthMinor, home)}</p></div>
-        <div className="stat well"><div className="stat__top"><p className="label">In your accounts</p><span className="stat__icon"><Wallet size={18} aria-hidden /></span></div><p className="figure">{formatMinor(nw.liquidMinor, home)}</p></div>
-        <div className="stat well"><div className="stat__top"><p className="label">Savings and investments</p><span className="stat__icon"><TrendingUp size={18} aria-hidden /></span></div><p className="figure">{formatMinor(nw.assetsMinor, home)}</p></div>
-        <div className="stat well"><div className="stat__top"><p className="label">Loans still owed</p><span className="stat__icon"><HandCoins size={18} aria-hidden /></span></div><p className="figure">{formatMinor(nw.liabilitiesMinor, home)}</p></div>
-      </section>
+      <Summary figure={formatMinor(nw.netWorthMinor, home, { whole: true })} caption="net worth: your accounts plus savings, less loans owed" />
+      <dl className="trio">
+        <div><dt><Wallet size={16} aria-hidden />In your accounts</dt><dd>{formatMinor(nw.liquidMinor, home, { whole: true })}</dd></div>
+        <div><dt><TrendingUp size={16} aria-hidden />Saved and invested</dt><dd>{formatMinor(nw.assetsMinor, home, { whole: true })}</dd></div>
+        <div><dt><HandCoins size={16} aria-hidden />Loans still owed</dt><dd>{formatMinor(nw.liabilitiesMinor, home, { whole: true })}</dd></div>
+      </dl>
       {nw.loansWithoutBalance > 0 && <p className="label">{nw.loansWithoutBalance} loan{nw.loansWithoutBalance === 1 ? "" : "s"} without a balance left aren&apos;t counted. Add the balance on the loan to include {nw.loansWithoutBalance === 1 ? "it" : "them"}.</p>}
       <p className="label">
         {now.saved < 0 ? `This month you took ${formatMinor(-now.saved, home)} out of savings and investments.`
@@ -93,7 +92,7 @@ async function SavingsLoader() {
             </ul>
           </>
         )}
-        <details className="more"><summary className="pill">Add a savings or investment account</summary><AssetForm /></details>
+        <details className="more"><summary className="btn btn--secondary">Add a savings or investment account</summary><AssetForm /></details>
       </section>
 
       <section className="stack-sm" aria-labelledby="fd-h">
@@ -118,7 +117,7 @@ async function SavingsLoader() {
           </div>
         )}
         <p className="label">A deposit that matures shows up in your forecast as money coming back on its date, which also helps the wishlist plan.</p>
-        <details className="more"><summary className="pill">Add a fixed deposit</summary><DepositForm payoutAccounts={spendable.map((a) => ({ id: a.id, name: a.name }))} /></details>
+        <details className="more"><summary className="btn btn--secondary">Add a fixed deposit</summary><DepositForm payoutAccounts={spendable.map((a) => ({ id: a.id, name: a.name }))} /></details>
       </section>
     </div>
   );

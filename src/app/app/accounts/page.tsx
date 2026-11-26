@@ -1,4 +1,6 @@
 import { Suspense } from "react";
+import { Summary } from "@/components/summary";
+import { AddPanel } from "@/components/add-panel";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { requireWorkspace } from "@/server/session";
 import { listAccounts } from "@/server/services/ledger";
@@ -16,7 +18,7 @@ async function AccountsLoader() {
   return (
     <div className="settle stack">
       <h1>Accounts</h1>
-      <AccountForm homeCurrency={workspace.homeCurrency} />
+      <Summary figure={formatMinor(accounts.filter((a) => a.currency === workspace.homeCurrency && !isAssetType(a.type)).reduce((n, a) => n + a.balanceMinor, 0), workspace.homeCurrency, { whole: true })} caption="in your spending accounts; savings and investments are not included" />
       <section className="well" aria-label="Your accounts">
         <table className="ledger">
           <thead><tr><th>Name</th><th>Type</th><th className="num">Balance</th></tr></thead>
@@ -27,6 +29,7 @@ async function AccountsLoader() {
           </tbody>
         </table>
       </section>
+      <AddPanel label="Add an account"><AccountForm homeCurrency={workspace.homeCurrency} /></AddPanel>
       <section className="stack-sm" aria-labelledby="mv-h">
         <h2 id="mv-h">Move money</h2>
         <TransferForm accounts={accounts} />

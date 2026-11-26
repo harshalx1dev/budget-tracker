@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { Summary } from "@/components/summary";
 import Link from "next/link";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { ArchiveButton, LoanForm, MarkPaidButton, MatchNowButton, RecurringForm } from "@/components/commit-forms";
@@ -36,6 +37,8 @@ async function CommitmentsLoader() {
     <div className="settle stack">
       <div className="head-row"><h1>Commitments</h1><MatchNowButton /></div>
 
+      {loanRows.length > 0 && <Summary figure={formatMinor(monthly, home, { whole: true })} caption="goes to EMIs each month right now" />}
+
       <section className="stack-sm" aria-labelledby="up-h">
         <h2 id="up-h">Coming up</h2>
         {expected.length === 0 ? (
@@ -65,7 +68,6 @@ async function CommitmentsLoader() {
 
       <section className="stack-sm" aria-labelledby="loan-h">
         <h2 id="loan-h">Loans and EMIs</h2>
-        {loanRows.length > 0 && <p className="label">{formatMinor(monthly, home)} goes to EMIs each month right now.</p>}
         {loanRows.length > 0 && (
           <div className="well table-wrap">
             <table className="ledger">
@@ -86,7 +88,7 @@ async function CommitmentsLoader() {
             </table>
           </div>
         )}
-        <details className="more"><summary className="pill">Add a loan or EMI</summary><LoanForm accounts={accountOpts} /></details>
+        <details className="more"><summary className="btn btn--secondary">Add a loan or EMI</summary><LoanForm accounts={accountOpts} /></details>
       </section>
 
       <section className="stack-sm" aria-labelledby="rec-h">
@@ -110,7 +112,7 @@ async function CommitmentsLoader() {
             </table>
           </div>
         )}
-        <details className="more"><summary className="pill">Add a recurring item</summary><RecurringForm accounts={accountOpts} categories={categories} savingsAccounts={accounts.filter((a) => isAssetType(a.type)).map((a) => ({ id: a.id, name: a.name }))} /></details>
+        <details className="more"><summary className="btn btn--secondary">Add a recurring item</summary><RecurringForm accounts={accountOpts} categories={categories} savingsAccounts={accounts.filter((a) => isAssetType(a.type)).map((a) => ({ id: a.id, name: a.name }))} /></details>
       </section>
     </div>
   );

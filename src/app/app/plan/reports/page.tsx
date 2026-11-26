@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { Summary } from "@/components/summary";
 import Link from "next/link";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { MonthlyChart } from "@/components/monthly-chart";
@@ -35,6 +36,8 @@ async function ReportsLoader({ searchParams }: { searchParams: Promise<{ m?: str
         </nav>
       </div>
 
+      <Summary figure={formatMinor(spent, home, { whole: true })} caption={`spent in ${label(month)}, against ${formatMinor(totals.find((r) => r.month === month)?.income ?? 0, home, { whole: true })} received`} />
+
       <section className="stack-sm" aria-labelledby="trend-h">
         <h2 id="trend-h">Income and spending, six months</h2>
         <div className="well" style={{ padding: "var(--space-lg)" }}><MonthlyChart rows={totals} currency={home} /></div>
@@ -53,12 +56,12 @@ async function ReportsLoader({ searchParams }: { searchParams: Promise<{ m?: str
       <section className="stack-sm" aria-labelledby="cat-h">
         <h2 id="cat-h">Where {label(month)} went</h2>
         {cats.length === 0 ? <div className="well empty"><h3>No spending this month</h3><p>Entries you add or import will show up here by category.</p></div> : (
-          <ul className="bars">
+          <ul className="well rows">
             {cats.map((c) => {
               const pct = spent > 0 ? Math.round((c.total / spent) * 100) : 0;
               return (
-                <li key={c.name} className="well bar">
-                  <div className="bar__head"><p>{c.name}</p><p className="num">{formatMinor(c.total, home)} <span className="label">{pct}%</span></p></div>
+                <li key={c.name} className="row">
+                  <div className="bar__head"><p className="row__title">{c.name}</p><p className="row__value">{formatMinor(c.total, home, { whole: true })} <span className="label">{pct}%</span></p></div>
                   <div className="bar__track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={`${c.name} share of spending`}><div className="bar__fill" style={{ transform: `scaleX(${pct / 100})` }} /></div>
                 </li>
               );

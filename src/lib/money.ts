@@ -13,8 +13,8 @@ export function toMinor(input: string, cur: string): number | null {
   return Math.round(n * 10 ** exponent(cur));
 }
 
-export function formatMinor(minor: number, cur: string, opts: { sign?: boolean } = {}) {
-  const e = exponent(cur);
-  const s = new Intl.NumberFormat(locale(cur), { style: "currency", currency: cur, minimumFractionDigits: e, maximumFractionDigits: e }).format(Math.abs(minor) / 10 ** e);
+export function formatMinor(minor: number, cur: string, opts: { sign?: boolean; whole?: boolean } = {}) {
+  const e = opts.whole ? 0 : exponent(cur); // whole units for headline figures; ledgers stay exact
+  const s = new Intl.NumberFormat(locale(cur), { style: "currency", currency: cur, minimumFractionDigits: e, maximumFractionDigits: e }).format(Math.abs(minor) / 10 ** exponent(cur));
   return minor < 0 ? `-${s}` : opts.sign && minor > 0 ? `+${s}` : s;
 }

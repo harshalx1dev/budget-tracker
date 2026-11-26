@@ -6,6 +6,7 @@ import Link from "next/link";
 import { QuickAddBar } from "@/components/quick-add-bar";
 import { TransactionForm } from "@/components/transaction-form";
 import { LedgerTable } from "@/components/ledger-table";
+import { AddPanel } from "@/components/add-panel";
 
 export const metadata = { title: "Transactions" };
 
@@ -20,7 +21,7 @@ async function TransactionsLoader() {
     <div className="settle stack">
       <div className="head-row"><h1>Transactions</h1><Link href="/app/import" className="btn btn--secondary">Import statement</Link></div>
       <QuickAddBar />
-      <TransactionForm accounts={accounts} categories={categories} homeCurrency={workspace.homeCurrency} />
+      <AddPanel label="Add with full details"><TransactionForm accounts={accounts} categories={categories} homeCurrency={workspace.homeCurrency} /></AddPanel>
       <section className="well" aria-label="Ledger">
         <LedgerTable rows={rows} categories={categories} empty="Nothing here yet. Add an entry above." />
       </section>
