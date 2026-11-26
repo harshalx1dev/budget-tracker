@@ -22,7 +22,7 @@ async function TransactionsLoader() {
       <QuickAddBar />
       <TransactionForm accounts={accounts} categories={categories} homeCurrency={workspace.homeCurrency} />
       <section className="well" aria-label="Ledger">
-        <LedgerTable rows={rows} empty="Nothing here yet. Add an entry above." />
+        <LedgerTable rows={rows} categories={categories} empty="Nothing here yet. Add an entry above." />
       </section>
     </div>
   );

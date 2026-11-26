@@ -4,8 +4,8 @@ import { db, schema } from "@/server/db";
 import { listAccounts } from "@/server/services/ledger";
 import { listExpected } from "@/server/services/commitments";
 import { listAssets, upcomingMaturities } from "@/server/services/savings";
-import { isAssetType } from "@/lib/savings";
-import { budgetAvailable, computeSafeToSpend, goalProgress, monthEnd, nextMonth, projectForecast, variableSpend, type ForecastMonth } from "@/lib/planner";
+import { ASSET_TYPES, isAssetType } from "@/lib/savings";
+import { budgetAvailable, computeMonthlySafe, computeSafeToSpend, goalProgress, monthEnd, nextMonth, projectForecast, variableSpend, type ForecastMonth } from "@/lib/planner";
 import { addMonths, daysBetween, shiftDays, todayISO } from "@/lib/dates";
 
 const { budgets, categories, expectedMatches, goalContributions, goals, transactions, workspaces } = schema;
@@ -98,12 +98,13 @@ export async function safeToSpend(workspaceId: string, homeCurrency: string) {
   const today = todayISO();
   const [accts, expected, goalRows, [ws]] = await Promise.all([
     listAccounts(workspaceId),
-    listExpected(workspaceId, today, shiftDays(today, 70)),
+    listExpected(workspaceId, shiftDays(today, -45), shiftDays(today, 70)),
     listGoals(workspaceId),
     db.select({ buffer: workspaces.bufferMinor }).from(workspaces).where(eq(workspaces.id, workspaceId)),
   ]);
   const balance = accts.filter((a) => a.currency === homeCurrency && !isAssetType(a.type)).reduce((s, a) => s + a.balanceMinor, 0);
-  const unpaid = expected.filter((e) => e.status !== "paid");
+  // Earlier dates are only used to find the last payday; what is owed is counted from today on.
+  const unpaid = expected.filter((e) => e.status !== "paid" && e.dueOn >= today);
   const nextIncome = unpaid.filter((e) => e.kind === "income").map((e) => e.dueOn).sort()[0] ?? null;
   // Without a known payday the horizon is the end of this month.
   const horizon = nextIncome ?? shiftDays(monthEnd(today.slice(0, 7)), 1);
@@ -111,7 +112,35 @@ export async function safeToSpend(workspaceId: string, homeCurrency: string) {
   const dueOutflows = due.reduce((s, e) => s + e.amountMinor, 0);
   const goalSetAside = goalRows.reduce((s, g) => s + (g.requiredMonthly ? Math.max(0, g.requiredMonthly - g.contributedThisMonth) : 0), 0);
   const calc = computeSafeToSpend({ balance, dueOutflows, goalSetAside, buffer: ws.buffer, days: daysBetween(today, horizon) });
-  return { balance, dueOutflows, due, goalSetAside, buffer: ws.buffer, nextIncome, horizon, incomeKnown: nextIncome !== null, ...calc };
+  // The cycle began on the last payday that actually arrived; without one it is the calendar month.
+  const lastPay = expected.filter((e) => e.kind === "income" && e.status === "paid" && e.dueOn <= shiftDays(today, 5)).map((e) => e.dueOn).sort().at(-1) ?? null;
+  const cycleStart = lastPay ? await paidOn(workspaceId, expected, lastPay) : `${today.slice(0, 7)}-01`;
+  const flow = await cycleFlow(workspaceId, homeCurrency, cycleStart, today);
+  const monthly = { cycleStart, fromPayday: lastPay !== null, ...flow, ...computeMonthlySafe({ ...flow, dueOutflows, goalSetAside, accountSafe: calc.safe, days: calc.days }) };
+  return { balance, dueOutflows, due, goalSetAside, buffer: ws.buffer, nextIncome, horizon, incomeKnown: nextIncome !== null, monthly, ...calc };
+}
+
+/** The date the money for a paid payday really landed, which can be a day or two off the planned date. */
+async function paidOn(workspaceId: string, expected: Awaited<ReturnType<typeof listExpected>>, due: string) {
+  const ids = expected.filter((e) => e.kind === "income" && e.dueOn === due && e.transactionId).map((e) => e.transactionId!);
+  if (!ids.length) return due;
+  const rows = await db.select({ on: transactions.occurredOn }).from(transactions).where(and(eq(transactions.workspaceId, workspaceId), inArray(transactions.id, ids)));
+  return rows.map((r) => r.on).sort()[0] ?? due;
+}
+
+/** Money in, spent, and moved into savings between two dates, in the home currency. */
+async function cycleFlow(workspaceId: string, home: string, from: string, to: string) {
+  const { accounts } = schema;
+  const rows = await db.select({ kind: transactions.kind, amount: transactions.amountMinor, transferId: transactions.transferId, type: accounts.type })
+    .from(transactions).innerJoin(accounts, eq(accounts.id, transactions.accountId))
+    .where(and(eq(transactions.workspaceId, workspaceId), eq(transactions.currency, home), gte(transactions.occurredOn, from), lt(transactions.occurredOn, shiftDays(to, 1))));
+  let income = 0, spent = 0, saved = 0;
+  for (const r of rows) {
+    const asset = (ASSET_TYPES as readonly string[]).includes(r.type);
+    if (r.transferId) { if (asset) saved += r.kind === "income" ? r.amount : -r.amount; }
+    else if (!asset) { if (r.kind === "income") income += r.amount; else spent += r.amount; }
+  }
+  return { income, spent, saved };
 }
 
 /* ---------- forecast ---------- */

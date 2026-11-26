@@ -46,6 +46,17 @@ export function computeSafeToSpend(i: { balance: number; dueOutflows: number; go
   return { safe, perDay: safe > 0 ? Math.floor(safe / days) : 0, days };
 }
 
+/**
+ * What this pay cycle's money still allows: what came in since payday, less what went out or into savings, less what
+ * is still due. Never more than the accounts themselves can spare.
+ */
+export function computeMonthlySafe(i: { income: number; spent: number; saved: number; dueOutflows: number; goalSetAside: number; accountSafe: number; days: number }) {
+  const left = i.income - i.spent - i.saved - i.dueOutflows - i.goalSetAside;
+  const safe = Math.min(left, i.accountSafe);
+  const days = Math.max(1, i.days);
+  return { safe, capped: safe < left, perDay: safe > 0 ? Math.floor(safe / days) : 0 };
+}
+
 /* ---- goals ---- */
 export function goalProgress(g: { targetMinor: number; savedMinor: number; targetDate: string | null; today: string }) {
   const remaining = Math.max(0, g.targetMinor - g.savedMinor);

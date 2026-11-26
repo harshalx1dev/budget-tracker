@@ -1,6 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { budgetAvailable, computeSafeToSpend, goalProgress, monthEnd, monthsBetween, projectForecast, variableSpend } from "./planner";
+import { budgetAvailable, computeMonthlySafe, computeSafeToSpend, goalProgress, monthEnd, monthsBetween, projectForecast, variableSpend } from "./planner";
+
+test("monthly safe to spend: this cycle's money, never more than the accounts hold", () => {
+  const base = { income: 78000, spent: 57817, saved: 10000, dueOutflows: 2000, goalSetAside: 0, accountSafe: 74263, days: 4 };
+  assert.deepEqual(computeMonthlySafe(base), { safe: 8183, capped: false, perDay: 2045 });
+  assert.deepEqual(computeMonthlySafe({ ...base, accountSafe: 5000 }), { safe: 5000, capped: true, perDay: 1250 });
+  assert.equal(computeMonthlySafe({ ...base, income: 0 }).perDay, 0);
+});
 
 test("months: end of month and distance", () => {
   assert.equal(monthEnd("2027-02"), "2027-02-28");

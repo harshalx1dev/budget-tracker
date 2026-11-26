@@ -6,6 +6,7 @@ import { BufferForm } from "@/components/plan-forms";
 import { requireWorkspace } from "@/server/session";
 import { forecast, safeToSpend } from "@/server/services/planner";
 import { formatMinor } from "@/lib/money";
+import { SafeSwitch } from "@/components/safe-switch";
 import { formatDay } from "@/lib/dates";
 
 export const metadata = { title: "Plan" };
@@ -18,26 +19,36 @@ async function ForecastLoader() {
   const [sts, fc] = await Promise.all([safeToSpend(workspace.id, home), forecast(workspace.id, home, 6)]);
   const lowest = fc.rows.reduce((m, r) => (r.end < m.end ? r : m), fc.rows[0]);
 
+  const until = sts.incomeKnown && sts.nextIncome ? `payday on ${formatDay(sts.nextIncome)}` : "the end of the month";
+  const safeBlock = (safe: number, perDay: number, basis: string, rows: [string, number][]) => (
+    <div className="sts">
+      <div>
+        <p className="label">{basis}, until {until}</p>
+        <p className="figure" data-negative={safe < 0}>{formatMinor(safe, home)}</p>
+        <p className="label">{safe > 0 ? `about ${formatMinor(perDay, home)} a day for ${sts.days} day${sts.days === 1 ? "" : "s"}` : "Nothing spare until the next payday"}</p>
+      </div>
+      <table className="ledger sts__break" aria-label="How this is worked out">
+        <tbody>{rows.map(([label, v]) => <tr key={label}><td>{label}</td><td className="num">{formatMinor(v, home)}</td></tr>)}</tbody>
+      </table>
+    </div>
+  );
+
   return (
     <div className="settle stack">
       <h1>Plan</h1>
 
       <section className="stack-sm" aria-labelledby="sts-h">
         <h2 id="sts-h">Safe to spend</h2>
-        <div className="well well--cloth sts">
-          <div>
-            <p className="label">Until {sts.incomeKnown && sts.nextIncome ? `payday on ${formatDay(sts.nextIncome)}` : "the end of the month"}</p>
-            <p className="figure" data-negative={sts.safe < 0}>{formatMinor(sts.safe, home)}</p>
-            <p className="label">{sts.safe > 0 ? `about ${formatMinor(sts.perDay, home)} a day for ${sts.days} day${sts.days === 1 ? "" : "s"}` : "Nothing spare until the next payday"}</p>
-          </div>
-          <table className="ledger sts__break" aria-label="How this is worked out">
-            <tbody>
-              <tr><td>In your accounts</td><td className="num">{formatMinor(sts.balance, home)}</td></tr>
-              <tr><td>Bills and EMIs due before then</td><td className="num">{formatMinor(-sts.dueOutflows, home)}</td></tr>
-              <tr><td>Set aside for goals</td><td className="num">{formatMinor(-sts.goalSetAside, home)}</td></tr>
-              <tr><td>Your buffer</td><td className="num">{formatMinor(-sts.buffer, home)}</td></tr>
-            </tbody>
-          </table>
+        <div className="well well--cloth sts-card">
+          <SafeSwitch
+            month={safeBlock(sts.monthly.safe, sts.monthly.perDay, `Since ${formatDay(sts.monthly.cycleStart)}${sts.monthly.capped ? ", limited by what your accounts hold" : ""}`, [
+              ["Received", sts.monthly.income], ["Already spent", -sts.monthly.spent], ["Moved to savings", -sts.monthly.saved],
+              ["Bills and EMIs still due", -sts.dueOutflows], ["Set aside for goals", -sts.goalSetAside],
+            ])}
+            accounts={safeBlock(sts.safe, sts.perDay, "Everything your accounts can spare", [
+              ["In your accounts", sts.balance], ["Bills and EMIs due before then", -sts.dueOutflows], ["Set aside for goals", -sts.goalSetAside], ["Your buffer", -sts.buffer],
+            ])}
+          />
         </div>
         {!sts.incomeKnown && <p className="label">No payday is planned yet. <Link href="/app/plan/commitments" className="link">Add your salary as a recurring item</Link> and this counts down to it.</p>}
         {sts.due.length > 0 && <p className="label">Due before then: {sts.due.map((d) => `${d.name} ${formatMinor(d.amountMinor, home)} on ${formatDay(d.dueOn)}`).join(", ")}.</p>}

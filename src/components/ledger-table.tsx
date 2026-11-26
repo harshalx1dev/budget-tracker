@@ -2,11 +2,14 @@ import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, ReceiptText } from "lucide
 import { formatMinor } from "@/lib/money";
 import { formatDay } from "@/lib/dates";
 import { DeleteButton } from "./delete-button";
+import { CategorySelect } from "./category-select";
 import type { listTransactions } from "@/server/services/ledger";
 
 type Row = Awaited<ReturnType<typeof listTransactions>>[number];
 
-export function LedgerTable({ rows, empty }: { rows: Row[]; empty: string }) {
+type Cat = { id: string; name: string; kind: "income" | "expense" };
+
+export function LedgerTable({ rows, categories, empty }: { rows: Row[]; categories: Cat[]; empty: string }) {
   if (!rows.length) {
     return (
       <div className="empty">
@@ -25,7 +28,7 @@ export function LedgerTable({ rows, empty }: { rows: Row[]; empty: string }) {
             <tr key={r.id}>
               <td>{formatDay(r.occurredOn)}</td>
               <td><span className="what"><span className="what__icon" data-kind={r.transferId ? "transfer" : r.kind} aria-hidden>{r.transferId ? <ArrowLeftRight size={14} /> : r.kind === "income" ? <ArrowDownLeft size={14} /> : <ArrowUpRight size={14} />}</span><span>{r.payee || r.note || "—"}{r.payee && r.note ? <span className="label"> {r.note}</span> : null}</span></span></td>
-              <td>{r.transferId ? "Transfer" : r.category ?? (r.status === "pending" ? "Needs review" : "—")}</td>
+              <td>{r.transferId ? "Transfer" : <CategorySelect id={r.id} value={r.categoryId} needsReview={r.status === "pending"} label={`Category for ${r.payee || r.note || "entry"}`} options={categories.filter((c) => c.kind === r.kind).map(({ id, name }) => ({ id, name }))} />}</td>
               <td>{r.account}</td>
               <td className="num amt" data-kind={r.kind}>{formatMinor(r.kind === "income" ? r.amountMinor : -r.amountMinor, r.currency, { sign: true })}</td>
               <td><DeleteButton id={r.id} /></td>

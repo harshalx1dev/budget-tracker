@@ -52,6 +52,7 @@ export function createBudgetServer(auth: McpAuth) {
       homeCurrency: home,
       accounts: accts.map((a) => ({ name: a.name, type: a.type, currency: a.currency, balance: toMajor(a.balanceMinor, a.currency) })),
       thisMonth: { income: toMajor(month.income, home), spending: toMajor(month.expense, home) },
+      safeToSpendThisPayCycle: { amount: toMajor(sts.monthly.safe, home), perDay: toMajor(sts.monthly.perDay, home), since: sts.monthly.cycleStart },
       safeToSpend: { amount: toMajor(sts.safe, home), perDay: toMajor(sts.perDay, home), untilPayday: sts.nextIncome, dueBeforeThen: toMajor(sts.dueOutflows, home), setAsideForGoals: toMajor(sts.goalSetAside, home), buffer: toMajor(sts.buffer, home) },
       entriesNeedingACategory: pending,
     };

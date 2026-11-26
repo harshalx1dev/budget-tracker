@@ -50,6 +50,7 @@ export async function listTransactions(workspaceId: string, limit = 100) {
       transferId: transactions.transferId,
       account: accounts.name,
       category: categories.name,
+      categoryId: transactions.categoryId,
     })
     .from(transactions)
     .innerJoin(accounts, eq(accounts.id, transactions.accountId))

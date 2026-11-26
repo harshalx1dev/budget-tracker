@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { ArrowDownLeft, ArrowUpRight, Landmark, PiggyBank, ShieldCheck } from "lucide-react";
 import { Spark } from "@/components/spark";
+import { SafeSwitch } from "@/components/safe-switch";
 import { monthlyTotals } from "@/server/services/reports";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { requireWorkspace } from "@/server/session";
@@ -13,7 +14,7 @@ import { listAccounts, listCategories, listTransactions, monthSummary } from "@/
 import { formatMinor } from "@/lib/money";
 import { isAssetType } from "@/lib/savings";
 import { netWorthNow } from "@/server/services/savings";
-import { thisMonth } from "@/lib/dates";
+import { formatDay, thisMonth } from "@/lib/dates";
 import { QuickAddBar } from "@/components/quick-add-bar";
 import { TransactionForm } from "@/components/transaction-form";
 import { LedgerTable } from "@/components/ledger-table";
@@ -35,8 +36,20 @@ async function OverviewLoader() {
   // Balances are summed only for accounts in the home currency; others need FX rates (later phase).
   const balance = accounts.filter((a) => a.currency === home && !isAssetType(a.type)).reduce((s, a) => s + a.balanceMinor, 0);
   const hasForeign = accounts.some((a) => a.currency !== home);
-  const safePct = balance > 0 ? Math.max(0, Math.min(1, sts.safe / balance)) : 0;
-  const safeNote = sts.safe > 0 ? `${formatMinor(sts.perDay, home)} a day until ${sts.incomeKnown && sts.nextIncome ? "payday" : "month end"}` : "Nothing spare yet";
+  const until = sts.incomeKnown && sts.nextIncome ? "payday" : "month end";
+  const m = sts.monthly;
+  const safeView = (safe: number, perDay: number, of: number, ofWhat: string, extra: string) => {
+    const pct = of > 0 ? Math.max(0, Math.min(1, safe / of)) : 0;
+    return (
+      <div>
+        <p className="figure">{formatMinor(safe, home)}</p>
+        <div className="meter" role="img" aria-label={`${Math.round(pct * 100)}% of ${ofWhat} is free to spend`}><div className="meter__fill" style={{ transform: `scaleX(${pct})` }} /></div>
+        <p className="label" style={{ marginTop: "var(--space-sm)" }}><span className="pulse" aria-hidden />{safe > 0 ? `${formatMinor(perDay, home)} a day until ${until}` : "Nothing spare yet"}</p>
+        <p className="label">{extra}</p>
+      </div>
+    );
+  };
+  const monthNote = m.income === 0 ? `No money received since ${formatDay(m.cycleStart)}` : m.safe < 0 ? `Bills and goals are ${formatMinor(-m.safe, home)} more than this cycle's money` : m.capped ? "Limited by what your accounts hold" : `From ${formatMinor(m.income, home)} received since ${formatDay(m.cycleStart)}`;
   const nwNote = nw.assetsMinor > 0 ? `${formatMinor(nw.assetsMinor, home)} saved and invested` : "Add savings under Plan";
 
   return (
@@ -45,9 +58,10 @@ async function OverviewLoader() {
       <section className="stats" aria-label="Summary">
         <div className="stat stat--hero well well--cloth">
           <div className="stat__top"><p className="label">Safe to spend</p><span className="stat__icon"><ShieldCheck size={18} aria-hidden /></span></div>
-          <p className="figure">{formatMinor(sts.safe, home)}</p>
-          <div className="meter" role="img" aria-label={`${Math.round(safePct * 100)}% of your balance is free to spend`}><div className="meter__fill" style={{ transform: `scaleX(${safePct})` }} /></div>
-          <p className="label" style={{ marginTop: "var(--space-sm)" }}><span className="pulse" aria-hidden />{safeNote}</p>
+          <SafeSwitch
+            month={safeView(m.safe, m.perDay, m.income, "this cycle's income", monthNote)}
+            accounts={safeView(sts.safe, sts.perDay, balance, "your balance", `Out of ${formatMinor(balance, home)} across your accounts`)}
+          />
         </div>
         <div className="stat well">
           <div className="stat__top"><p className="label">Balance</p><span className="stat__icon"><Landmark size={18} aria-hidden /></span></div>
@@ -85,7 +99,7 @@ async function OverviewLoader() {
       </section>
       <section className="well" aria-labelledby="ledger-h">
         <h2 id="ledger-h" className="well__head">Recent</h2>
-        <LedgerTable rows={recent} empty="Add your first entry above. Income and spending land here, newest first." />
+        <LedgerTable rows={recent} categories={categories} empty="Add your first entry above. Income and spending land here, newest first." />
       </section>
     </div>
   );
