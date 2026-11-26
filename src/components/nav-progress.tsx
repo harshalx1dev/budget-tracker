@@ -29,8 +29,16 @@ export function NavProgress() {
       setStartedAt(Date.now());
       setShow(true);
     };
+    const onStart = () => { setFrom(window.location.pathname); setStartedAt(Date.now()); setShow(true); };
+    const onEnd = () => { delete document.documentElement.dataset.loading; setShow(false); setFrom(null); };
     document.addEventListener("click", onClick, true);
-    return () => document.removeEventListener("click", onClick, true);
+    window.addEventListener("budggyy:loading", onStart);
+    window.addEventListener("budggyy:loading-end", onEnd);
+    return () => {
+      document.removeEventListener("click", onClick, true);
+      window.removeEventListener("budggyy:loading", onStart);
+      window.removeEventListener("budggyy:loading-end", onEnd);
+    };
   }, []);
 
   const arrived = from !== null && from !== path;

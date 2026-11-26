@@ -6,6 +6,7 @@ import { Inbox, Landmark, LayoutDashboard, LogOut, ReceiptText, Search, Settings
 import { LogoMark, Wordmark } from "./logo";
 import { BRAND } from "@/lib/brand";
 import { authClient } from "@/lib/auth-client";
+import { hideLoading, showLoading } from "@/lib/loading";
 import { ThemeToggle } from "./theme-toggle";
 
 const LINKS = [
@@ -30,7 +31,7 @@ export function TopBar() {
   const path = usePathname();
   const router = useRouter();
   const current = (href: string) => (path === href || (href !== "/app" && path.startsWith(`${href}/`)) ? "page" : undefined);
-  const signOut = async () => { await authClient.signOut(); router.push("/login"); router.refresh(); };
+  const signOut = async () => { showLoading(); try { await authClient.signOut(); router.push("/login"); router.refresh(); } catch { hideLoading(); } };
   const openPalette = () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
 
   return (

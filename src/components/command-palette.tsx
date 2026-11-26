@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { authClient } from "@/lib/auth-client";
+import { hideLoading, showLoading } from "@/lib/loading";
 
 type Cmd = { id: string; label: string; hint?: string; run: () => void };
 
@@ -26,11 +27,11 @@ export function CommandPalette() {
   const open = () => { setQ(""); setActive(0); ref.current?.showModal(); requestAnimationFrame(() => input.current?.focus()); };
 
   const commands: Cmd[] = useMemo(() => [
-    { id: "quick", label: "Quick add an entry", hint: "/", run: () => router.push("/app/quick") },
-    ...PAGES.map(([label, href]): Cmd => ({ id: href, label: `Go to ${label.toLowerCase()}`, run: () => router.push(href) })),
+    { id: "quick", label: "Quick add an entry", hint: "/", run: () => { showLoading(); router.push("/app/quick"); } },
+    ...PAGES.map(([label, href]): Cmd => ({ id: href, label: `Go to ${label.toLowerCase()}`, run: () => { if (href !== window.location.pathname) showLoading(); router.push(href); } })),
     { id: "theme", label: `Switch to ${resolvedTheme === "dark" ? "light" : "dark"} mode`, run: () => setTheme(resolvedTheme === "dark" ? "light" : "dark") },
     { id: "export", label: "Download transactions as CSV", run: () => { const a = document.createElement("a"); a.href = "/app/export/transactions"; a.download = ""; a.click(); } },
-    { id: "out", label: "Sign out", run: async () => { await authClient.signOut(); router.push("/login"); router.refresh(); } },
+    { id: "out", label: "Sign out", run: async () => { showLoading(); try { await authClient.signOut(); router.push("/login"); router.refresh(); } catch { hideLoading(); } } },
   ], [router, resolvedTheme, setTheme]);
 
   const shown = commands.filter((c) => q.toLowerCase().split(/\s+/).every((w) => c.label.toLowerCase().includes(w)));

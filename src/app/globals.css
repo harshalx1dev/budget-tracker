@@ -453,3 +453,10 @@ select.input { padding-right: var(--space-xs); }
 @keyframes drift-b { from { transform: translate(50px, -30px) scale(1.02); } to { transform: translate(-40px, 50px) scale(0.96); } }
 @keyframes float-a { from { transform: translate(0, 0); } to { transform: translate(120px, 90px); } }
 @keyframes float-b { from { transform: translate(0, 0); } to { transform: translate(-110px, -80px); } }
+
+/* ───────── working feedback: a button that is busy shows it, so a click never feels ignored ───────── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.btn:disabled:not([aria-busy="false"] *)::before { content: ""; width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin 0.7s linear infinite; flex: none; }
+.btn:disabled:not([aria-busy="false"] *) { opacity: 0.75; cursor: progress; }
+.icon-btn:disabled, .pill:disabled { animation: busy-pulse 1s ease-in-out infinite; cursor: progress; }
+@keyframes busy-pulse { 50% { opacity: 0.35; } }

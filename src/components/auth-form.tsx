@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { hideLoading, showLoading } from "@/lib/loading";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
@@ -16,15 +17,21 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
+    showLoading();
     setError(null);
     const f = new FormData(e.currentTarget);
     const email = String(f.get("email"));
     const password = String(f.get("password"));
-    const res = signup
-      ? await authClient.signUp.email({ name: String(f.get("name")), email, password })
-      : await authClient.signIn.email({ email, password });
-    setBusy(false);
-    if (res.error) return setError(res.error.message ?? "Something went wrong");
+    let res;
+    try {
+      res = signup
+        ? await authClient.signUp.email({ name: String(f.get("name")), email, password })
+        : await authClient.signIn.email({ email, password });
+    } catch {
+      setBusy(false); hideLoading();
+      return setError("Could not reach the server. Check your connection and try again.");
+    }
+    if (res.error) { setBusy(false); hideLoading(); return setError(res.error.message ?? "Something went wrong"); }
     router.push(next);
     router.refresh();
   }
