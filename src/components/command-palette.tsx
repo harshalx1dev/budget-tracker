@@ -10,7 +10,7 @@ type Cmd = { id: string; label: string; hint?: string; run: () => void };
 
 const PAGES: [string, string][] = [
   ["overview", "/app"], ["transactions", "/app/transactions"], ["to sort", "/app/inbox"], ["accounts", "/app/accounts"], ["settings", "/app/settings"],
-  ["forecast", "/app/plan"], ["budgets", "/app/plan/budgets"], ["goals", "/app/plan/goals"], ["wishlist", "/app/plan/wishlist"],
+  ["budgets", "/app/plan/budgets"], ["goals", "/app/plan/goals"], ["want to buy", "/app/plan/wishlist"], ["savings", "/app/plan/savings"],
   ["bills and EMIs", "/app/plan/commitments"], ["trends", "/app/plan/reports"], ["import a statement", "/app/import"], ["categories and rules", "/app/categories"],
 ];
 
