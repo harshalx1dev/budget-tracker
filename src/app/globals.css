@@ -7,6 +7,8 @@
 @import "./base.css" layer(base);
 
 :root {
+  --color-scrim: oklch(0% 0 0 / 0.45);
+  --shadow-pop: 0 24px 60px oklch(0% 0 0 / 0.35);
   --font-display: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
   --font-body: var(--font-onest), ui-sans-serif, sans-serif;
 }
@@ -218,8 +220,8 @@ h1, h2, h3, .btn, .pill, .label, .nav a { text-transform: lowercase; }
 .swatch--spend { background: var(--color-accent); }
 
 /* command palette */
-.palette { border: 0; padding: 0; margin: 12vh auto auto; width: min(560px, calc(100vw - 32px)); border-radius: var(--radius-card); background: var(--color-paper); color: var(--color-ink); box-shadow: 0 0 0 1px var(--color-rule), 0 24px 60px oklch(0% 0 0 / 0.35); }
-.palette::backdrop { background: oklch(0% 0 0 / 0.45); }
+.palette { border: 0; padding: 0; margin: 12vh auto auto; box-sizing: border-box; width: 100%; max-width: 560px; border-radius: var(--radius-card); background: var(--color-paper); color: var(--color-ink); box-shadow: 0 0 0 1px var(--color-rule), var(--shadow-pop); }
+.palette::backdrop { background: var(--color-scrim); }
 .palette[open] { animation: pop var(--dur-short) var(--ease-out); }
 .palette__box { display: grid; gap: var(--space-sm); padding: var(--space-md); }
 .palette__list { list-style: none; margin: 0; padding: 0; max-height: 50vh; overflow: auto; display: grid; gap: var(--space-3xs); }
