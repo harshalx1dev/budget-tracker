@@ -62,6 +62,8 @@ export const workspaces = pgTable("workspaces", {
   homeCurrency: text("home_currency").notNull().default("INR"),
   // Money to keep untouched; safe-to-spend and affordability treat it as spent.
   bufferMinor: bigint("buffer_minor", { mode: "number" }).notNull().default(0),
+  // Largest share of monthly income that all EMIs together may take when judging a new one.
+  maxEmiRatioPct: integer("max_emi_ratio_pct").notNull().default(40),
   createdAt: createdAt(),
 });
 
@@ -253,3 +255,36 @@ export const goalContributions = pgTable("goal_contributions", {
   note: text("note"),
   createdAt: createdAt(),
 }, (t) => [index("goal_contributions_goal_idx").on(t.goalId)]);
+
+/* Wishlist */
+export const wishType = pgEnum("wish_type", ["need", "want", "desire"]);
+export const wishStatus = pgEnum("wish_status", ["wanted", "planned", "bought", "dropped"]);
+
+export const wishlistItems = pgTable("wishlist_items", {
+  id: id(),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  categoryId: text("category_id").references(() => categories.id, { onDelete: "set null" }),
+  title: text("title").notNull(),
+  priceMinor: money("price_minor").notNull(), // workspace home currency
+  type: wishType("type").notNull().default("want"),
+  priority: integer("priority").notNull().default(2), // 1 high, 2 medium, 3 low
+  targetDate: date("target_date"),
+  notes: text("notes"),
+  status: wishStatus("status").notNull().default("wanted"),
+  // Optional EMI option. A rate of 0 means a no-cost EMI.
+  downPaymentMinor: money("down_payment_minor"),
+  emiTenureMonths: integer("emi_tenure_months"),
+  emiRatePct: numeric("emi_rate_pct", { precision: 7, scale: 4 }),
+  boughtOn: date("bought_on"),
+  createdAt: createdAt(),
+}, (t) => [index("wishlist_items_workspace_idx").on(t.workspaceId, t.status)]);
+
+export const wishlistLinks = pgTable("wishlist_links", {
+  id: id(),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  itemId: text("item_id").notNull().references(() => wishlistItems.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  label: text("label"),
+  priceMinor: money("price_minor"), // price at that store, if you noted it
+  createdAt: createdAt(),
+}, (t) => [index("wishlist_links_item_idx").on(t.itemId)]);

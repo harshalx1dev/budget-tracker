@@ -151,8 +151,11 @@ export async function forecast(workspaceId: string, homeCurrency: string, count 
     return { month: ym, income, committed, variable };
   });
 
+  const emiByMonth = yms.map((ym) => expected.filter((e) => e.sourceKind === "loan" && e.dueOn.slice(0, 7) === ym).reduce((t, e) => t + e.amountMinor, 0));
+
   return {
     startBalance,
+    emiByMonth,
     rows: projectForecast(startBalance, months),
     incomeKnown: expected.some((e) => e.kind === "income"),
     hasBudgets: status.length > 0,

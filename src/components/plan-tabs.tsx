@@ -7,6 +7,7 @@ const TABS = [
   { href: "/app/plan", label: "forecast" },
   { href: "/app/plan/budgets", label: "budgets" },
   { href: "/app/plan/goals", label: "goals" },
+  { href: "/app/plan/wishlist", label: "wishlist" },
   { href: "/app/plan/commitments", label: "commitments" },
 ];
 
