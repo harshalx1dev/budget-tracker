@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   reactCompiler: true,
+  serverExternalPackages: ["web-push"],
   experimental: { serverActions: { bodySizeLimit: "5mb" } },
   turbopack: {
     rules: {

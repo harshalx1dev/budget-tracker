@@ -62,9 +62,16 @@ export class NoAmountError extends Error {
 
 export type QuickParsed = { amount: number | null; kind: "income" | "expense"; accountId: string | null; date: string; text: string };
 
-export async function quickAdd(workspaceId: string, homeCurrency: string, input: string, override?: QuickParsed) {
+export type QuickOpts = { asOf?: string; clientRef?: string };
+
+/** `asOf` is the day the line was typed (an offline entry synced later); `clientRef` makes a retry a no-op. */
+export async function quickAdd(workspaceId: string, homeCurrency: string, input: string, override?: QuickParsed, opts: QuickOpts = {}) {
+  if (opts.clientRef) {
+    const [dup] = await db.select({ id: transactions.id }).from(transactions).where(and(eq(transactions.workspaceId, workspaceId), eq(transactions.clientRef, opts.clientRef)));
+    if (dup) return { duplicate: true as const };
+  }
   const accts = await listAccounts(workspaceId);
-  const parsed = override ?? parseQuickAdd(input, accts.map((a) => ({ id: a.id, name: a.name, aliases: a.aliases })), todayISO());
+  const parsed = override ?? parseQuickAdd(input, accts.map((a) => ({ id: a.id, name: a.name, aliases: a.aliases })), opts.asOf ?? todayISO());
   if (!parsed.amount) throw new NoAmountError();
   const acct = accts.find((a) => a.id === parsed.accountId) ?? accts.find((a) => a.type === "cash") ?? accts[0];
   if (!acct) throw new Error("add an account first");
@@ -73,10 +80,10 @@ export async function quickAdd(workspaceId: string, homeCurrency: string, input:
   const categoryId = matchRule(await rulesFor(workspaceId), parsed.text);
   await db.insert(transactions).values({
     workspaceId, accountId: acct.id, categoryId, kind: parsed.kind, amountMinor, currency: acct.currency,
-    payee: parsed.text || null, occurredOn: parsed.date, source: "quick", status: categoryId ? "confirmed" : "pending",
+    payee: parsed.text || null, occurredOn: parsed.date, source: "quick", status: categoryId ? "confirmed" : "pending", clientRef: opts.clientRef ?? null,
   });
   await autoMatch(workspaceId);
-  return { amountMinor, currency: acct.currency, account: acct.name, date: parsed.date, text: parsed.text, categorised: Boolean(categoryId) };
+  return { duplicate: false as const, amountMinor, currency: acct.currency, account: acct.name, date: parsed.date, text: parsed.text, categorised: Boolean(categoryId) };
 }
 
 /* ---------- statement import ---------- */

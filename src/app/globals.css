@@ -206,3 +206,25 @@ h1, h2, h3, .btn, .pill, .label, .nav a { text-transform: lowercase; }
 /* mcp */
 .code { font: 400 var(--text-sm)/1.4 var(--font-outlier); overflow-wrap: anywhere; }
 .code--block { display: block; padding: var(--space-sm) var(--space-md); border-radius: var(--radius-card); background: var(--color-paper-3); user-select: all; }
+
+/* reports */
+.chart-fig { margin: 0; display: grid; gap: var(--space-sm); }
+.chart__bar--income { fill: var(--color-success); }
+.chart__bar--spend { fill: var(--color-accent); }
+.legend { display: flex; gap: var(--space-lg); font: 500 var(--text-sm)/1 var(--font-display); color: var(--color-muted); }
+.legend span { display: inline-flex; align-items: center; gap: var(--space-xs); }
+.swatch { width: 12px; height: 12px; border-radius: 4px; display: inline-block; }
+.swatch--income { background: var(--color-success); }
+.swatch--spend { background: var(--color-accent); }
+
+/* command palette */
+.palette { border: 0; padding: 0; margin: 12vh auto auto; width: min(560px, calc(100vw - 32px)); border-radius: var(--radius-card); background: var(--color-paper); color: var(--color-ink); box-shadow: 0 0 0 1px var(--color-rule), 0 24px 60px oklch(0% 0 0 / 0.35); }
+.palette::backdrop { background: oklch(0% 0 0 / 0.45); }
+.palette[open] { animation: pop var(--dur-short) var(--ease-out); }
+.palette__box { display: grid; gap: var(--space-sm); padding: var(--space-md); }
+.palette__list { list-style: none; margin: 0; padding: 0; max-height: 50vh; overflow: auto; display: grid; gap: var(--space-3xs); }
+.palette__list li { display: flex; justify-content: space-between; align-items: center; padding: var(--space-sm) var(--space-md); border-radius: var(--radius-pill); cursor: pointer; font: 500 var(--text-sm)/1.2 var(--font-display); text-transform: lowercase; }
+.palette__list li[data-active="true"] { background: var(--color-accent); color: var(--color-accent-ink); }
+.palette__list li[data-active="true"] .label { color: inherit; }
+.palette__none { padding: var(--space-sm) var(--space-md); cursor: default; }
+@keyframes pop { from { opacity: 0; transform: translateY(-8px) scale(0.98); } }

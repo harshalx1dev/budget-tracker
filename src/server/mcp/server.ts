@@ -123,9 +123,13 @@ export function createBudgetServer(auth: McpAuth) {
 
   tool(server, auth, {
     name: "add_transaction", title: "Add a transaction", scope: "write",
-    description: "Add one income or expense. amount is positive, in major units. account and category are names from list_accounts and list_categories; without a category the entry waits in the user's inbox. Only add what the user asked for.",
-    input: { amount: z.number().positive().max(1e9), kind: z.enum(["income", "expense"]), account: z.string().max(60).optional(), category: z.string().max(60).optional(), date: day.optional(), payee: z.string().max(80).optional(), note: z.string().max(200).optional() },
+    description: "Add one income or expense. amount is positive, in major units. account and category are names from list_accounts and list_categories; without a category the entry waits in the user's inbox. Only add what the user asked for. Pass clientRef (any unique string) so a retry cannot add it twice.",
+    input: { amount: z.number().positive().max(1e9), kind: z.enum(["income", "expense"]), account: z.string().max(60).optional(), category: z.string().max(60).optional(), date: day.optional(), payee: z.string().max(80).optional(), note: z.string().max(200).optional(), clientRef: z.string().min(1).max(64).optional() },
   }, async (a) => {
+    if (a.clientRef) {
+      const [dup] = await db.select({ id: transactions.id }).from(transactions).where(and(eq(transactions.workspaceId, ws.id), eq(transactions.clientRef, `mcp:${a.clientRef}`)));
+      if (dup) return { added: false, duplicate: true };
+    }
     const accts = await listAccounts(ws.id);
     const acct = a.account ? accts.find((x) => x.name.toLowerCase() === a.account!.toLowerCase()) : accts.find((x) => x.type === "cash") ?? accts[0];
     if (!acct) throw new ToolError(a.account ? `no account named "${clip(a.account, 60)}". Accounts: ${accts.map((x) => x.name).join(", ")}` : "add an account in the app first");
@@ -140,7 +144,7 @@ export function createBudgetServer(auth: McpAuth) {
     const date = a.date ? validDate(a.date) : todayISO();
     const amountMinor = Math.round(a.amount * 10 ** exponent(acct.currency));
     if (amountMinor < 1) throw new ToolError("amount is too small");
-    await db.insert(transactions).values({ workspaceId: ws.id, accountId: acct.id, categoryId, kind: a.kind, amountMinor, currency: acct.currency, payee: a.payee?.trim() || null, note: a.note?.trim() || null, occurredOn: date, source: "mcp", status: categoryId ? "confirmed" : "pending" });
+    await db.insert(transactions).values({ workspaceId: ws.id, accountId: acct.id, categoryId, kind: a.kind, amountMinor, currency: acct.currency, payee: a.payee?.trim() || null, note: a.note?.trim() || null, occurredOn: date, source: "mcp", status: categoryId ? "confirmed" : "pending", clientRef: a.clientRef ? `mcp:${a.clientRef}` : null });
     await autoMatch(ws.id);
     return { added: true, account: acct.name, date, amount: a.amount, kind: a.kind, category: a.category ?? null, waitingInInbox: categoryId === null };
   });
@@ -148,10 +152,11 @@ export function createBudgetServer(auth: McpAuth) {
   tool(server, auth, {
     name: "quick_add", title: "Add from a short line", scope: "write",
     description: 'Add an entry from one short line the way the user would type it, for example "chai 20 cash", "swiggy 450 upi yesterday" or "+25000 salary". Needs an amount in the text.',
-    input: { text: z.string().min(1).max(200) },
+    input: { text: z.string().min(1).max(200), clientRef: z.string().min(1).max(64).optional() },
   }, async (a) => {
     try {
-      const r = await quickAdd(ws.id, home, a.text);
+      const r = await quickAdd(ws.id, home, a.text, undefined, { clientRef: a.clientRef ? `mcp:${a.clientRef}` : undefined });
+      if (r.duplicate) return { added: false, duplicate: true };
       return { added: true, amount: toMajor(r.amountMinor, r.currency), account: r.account, date: r.date, what: clip(r.text, 80), categorised: r.categorised };
     } catch (e) {
       if (e instanceof NoAmountError) throw new ToolError("no amount found in that line; use add_transaction with an explicit amount");

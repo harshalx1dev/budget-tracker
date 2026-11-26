@@ -37,3 +37,15 @@ test("grounding: decimals are compared by value", () => {
 test("plain: markdown decoration is stripped", () => {
   assert.equal(plain("**Buy** the `TV` first\n\n\n\nthen the laptop"), "Buy the TV first\n\nthen the laptop");
 });
+
+import { csvCell, toCsv } from "./csv";
+
+test("csv: quotes commas and quotes, neutralises formula-looking cells", () => {
+  assert.equal(csvCell('a,"b"'), '"a,""b"""');
+  assert.equal(csvCell("=HYPERLINK(\"x\")"), '"\'=HYPERLINK(""x"")"');
+  assert.equal(csvCell("+91 98765"), "'+91 98765");
+  assert.equal(csvCell("@sum"), "'@sum");
+  assert.equal(csvCell(-5), "-5"); // real negative numbers stay numbers
+  assert.equal(csvCell(null), "");
+  assert.equal(toCsv(["a", "b"], [["x", 1]]), "a,b\r\nx,1\r\n");
+});

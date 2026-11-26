@@ -123,9 +123,12 @@ export const transactions = pgTable("transactions", {
   importBatchId: text("import_batch_id").references(() => importBatches.id, { onDelete: "set null" }),
   importHash: text("import_hash"),
   rawNarration: text("raw_narration"),
+  // Idempotency key from the client or an agent: the same key never creates a second entry.
+  clientRef: text("client_ref"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 }, (t) => [
+  uniqueIndex("transactions_client_ref_uq").on(t.workspaceId, t.clientRef),
   index("transactions_workspace_date_idx").on(t.workspaceId, t.occurredOn),
   index("transactions_transfer_idx").on(t.transferId),
   index("transactions_status_idx").on(t.workspaceId, t.status),
@@ -345,3 +348,22 @@ export const mcpCalls = pgTable("mcp_calls", {
   ok: boolean("ok").notNull(),
   createdAt: createdAt(),
 }, (t) => [index("mcp_calls_token_time_idx").on(t.tokenId, t.createdAt)]);
+
+/* Web push: bill reminders */
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: id(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  createdAt: createdAt(),
+}, (t) => [index("push_subscriptions_user_idx").on(t.userId)]);
+
+// One row per reminder actually sent, so a cron that runs twice in a day never sends twice.
+export const pushSent = pgTable("push_sent", {
+  id: id(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  reminderKey: text("reminder_key").notNull(),
+  day: date("day").notNull(),
+  createdAt: createdAt(),
+}, (t) => [uniqueIndex("push_sent_uq").on(t.userId, t.reminderKey, t.day)]);

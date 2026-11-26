@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { PageSkeleton } from "@/components/page-skeleton";
 import Link from "next/link";
 import { AiKeyForm } from "@/components/ai-bits";
+import { RemindersCard } from "@/components/reminders-card";
 import { McpTokenCard } from "@/components/mcp-token-card";
 import { listTokens } from "@/server/mcp/tokens";
 import { tokenState } from "@/lib/mcp-token";
@@ -28,6 +29,18 @@ async function SettingsLoader() {
       <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
         <h2>connect an agent</h2>
         <McpTokenCard endpoint={endpoint} tokens={tokens.map((t) => ({ id: t.id, name: t.name, prefix: t.prefix, write: t.scopes.includes("write"), state: tokenState(t), expiresAt: t.expiresAt?.toISOString() ?? null, lastUsedAt: t.lastUsedAt?.toISOString() ?? null }))} />
+      </section>
+      <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
+        <h2>bill reminders</h2>
+        <RemindersCard />
+      </section>
+      <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
+        <h2>export your data</h2>
+        <p className="label">Your data is yours. The CSV opens in any spreadsheet; the backup holds everything except passwords, keys and tokens.</p>
+        <div className="inline-form">
+          <a className="btn btn--secondary" href="/app/export/transactions" download>transactions as csv</a>
+          <a className="btn btn--secondary" href="/app/export/backup" download>full backup as json</a>
+        </div>
       </section>
       <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
         <h2>categories and rules</h2>

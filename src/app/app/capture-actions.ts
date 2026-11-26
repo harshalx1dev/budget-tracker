@@ -8,7 +8,7 @@ import { parseEntryWithAi, suggestCategories } from "@/server/services/ai-featur
 import { NoAmountError, addCategory, addRule, categorize, convertToTransfer, createTransfer, deleteCategory, deleteRule, importStatement, quickAdd, reconcileCash } from "@/server/services/capture";
 import { listAccounts } from "@/server/services/ledger";
 import { exponent, formatMinor, toMinor } from "@/lib/money";
-import { todayISO } from "@/lib/dates";
+import { shiftDays, todayISO } from "@/lib/dates";
 import { pdfToTable } from "@/server/services/pdf";
 import type { StatementRow } from "@/lib/statement";
 
@@ -21,16 +21,24 @@ export async function quickAddAction(_: CaptureState, fd: FormData): Promise<Cap
   const { user, workspace } = await requireWorkspace();
   const input = String(fd.get("q") ?? "").trim().slice(0, 200);
   if (!input) return { error: "type something like: chai 20 cash" };
+  // An entry queued offline carries the day it was typed and a key, so a retry never adds it twice.
+  const ref = String(fd.get("ref") ?? "");
+  const asOf = String(fd.get("asOf") ?? "");
+  const opts = {
+    clientRef: /^[0-9a-f-]{36}$/i.test(ref) ? ref : undefined,
+    asOf: /^\d{4}-\d{2}-\d{2}$/.test(asOf) && asOf <= shiftDays(todayISO(), 1) && asOf >= shiftDays(todayISO(), -30) ? asOf : undefined,
+  };
   try {
     let r;
     try {
-      r = await quickAdd(workspace.id, workspace.homeCurrency, input);
+      r = await quickAdd(workspace.id, workspace.homeCurrency, input, undefined, opts);
     } catch (e) {
       // Free text the local parser cannot read: ask the AI, only if this user has connected a key.
       if (!(e instanceof NoAmountError) || !(await hasKey(user.id))) throw e;
-      r = await quickAdd(workspace.id, workspace.homeCurrency, input, await parseEntryWithAi(user.id, workspace.id, input));
+      r = await quickAdd(workspace.id, workspace.homeCurrency, input, await parseEntryWithAi(user.id, workspace.id, input), opts);
     }
     refresh();
+    if (r.duplicate) return { message: "already added" };
     return { message: `added ${formatMinor(r.amountMinor, r.currency)} to ${r.account}${r.text ? ` for ${r.text}` : ""}${r.categorised ? "" : ", needs a category in the inbox"}` };
   } catch (e) { return fail(e); }
 }

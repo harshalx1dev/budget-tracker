@@ -9,6 +9,7 @@ const TABS = [
   { href: "/app/plan/goals", label: "goals" },
   { href: "/app/plan/wishlist", label: "wishlist" },
   { href: "/app/plan/commitments", label: "commitments" },
+  { href: "/app/plan/reports", label: "reports" },
 ];
 
 export function PlanTabs() {
