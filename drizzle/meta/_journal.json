@@ -36,6 +36,13 @@
       "when": 1795683165074,
       "tag": "0004_warm_silverclaw",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795683532517,
+      "tag": "0005_next_vance_astro",
+      "breakpoints": true
     }
   ]
 }

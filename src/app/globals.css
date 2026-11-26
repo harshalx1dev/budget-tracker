@@ -198,3 +198,7 @@ h1, h2, h3, .btn, .pill, .label, .nav a { text-transform: lowercase; }
 .plan-item:hover { transform: translateY(-2px); }
 .plan-item__n { margin: 0; color: var(--color-accent); min-width: 1.5ch; }
 @media (max-width: 40rem) { .fieldset__grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* ai */
+.prose-ai { white-space: pre-line; max-width: 65ch; }
+.pill--outline[data-suggested] { background: var(--color-accent); color: var(--color-accent-ink); box-shadow: none; }

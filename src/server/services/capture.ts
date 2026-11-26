@@ -55,10 +55,17 @@ async function ensureCategory(workspaceId: string, name: string, kind: "income" 
 
 /* ---------- quick add ---------- */
 
-export async function quickAdd(workspaceId: string, homeCurrency: string, input: string) {
+/** Thrown when the local parser finds no amount, so the caller can fall back to the AI parser if a key is set. */
+export class NoAmountError extends Error {
+  constructor() { super("no amount found, try: chai 20 cash"); }
+}
+
+export type QuickParsed = { amount: number | null; kind: "income" | "expense"; accountId: string | null; date: string; text: string };
+
+export async function quickAdd(workspaceId: string, homeCurrency: string, input: string, override?: QuickParsed) {
   const accts = await listAccounts(workspaceId);
-  const parsed = parseQuickAdd(input, accts.map((a) => ({ id: a.id, name: a.name, aliases: a.aliases })), todayISO());
-  if (!parsed.amount) throw new Error("no amount found, try: chai 20 cash");
+  const parsed = override ?? parseQuickAdd(input, accts.map((a) => ({ id: a.id, name: a.name, aliases: a.aliases })), todayISO());
+  if (!parsed.amount) throw new NoAmountError();
   const acct = accts.find((a) => a.id === parsed.accountId) ?? accts.find((a) => a.type === "cash") ?? accts[0];
   if (!acct) throw new Error("add an account first");
   if (acct.currency !== homeCurrency) throw new Error("quick-add works for home-currency accounts; use the full form");

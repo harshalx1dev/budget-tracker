@@ -3,14 +3,15 @@ import Link from "next/link";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { InboxList } from "@/components/inbox-list";
 import { requireWorkspace } from "@/server/session";
+import { hasKey } from "@/server/ai/gateway";
 import { listAccounts, listCategories } from "@/server/services/ledger";
 import { listPending } from "@/server/services/capture";
 
 export const metadata = { title: "inbox" };
 
 async function InboxLoader() {
-  const { workspace } = await requireWorkspace();
-  const [rows, categories, accounts] = await Promise.all([listPending(workspace.id), listCategories(workspace.id), listAccounts(workspace.id)]);
+  const { user, workspace } = await requireWorkspace();
+  const [rows, categories, accounts, key] = await Promise.all([listPending(workspace.id), listCategories(workspace.id), listAccounts(workspace.id), hasKey(user.id)]);
   return (
     <div className="settle stack">
       <h1>inbox</h1>
@@ -21,7 +22,7 @@ async function InboxLoader() {
           <Link href="/app/import" className="btn btn--secondary">import a statement</Link>
         </section>
       ) : (
-        <InboxList rows={rows} categories={categories} accounts={accounts} />
+        <InboxList rows={rows} categories={categories} accounts={accounts} aiEnabled={Boolean(key)} />
       )}
     </div>
   );

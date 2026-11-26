@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireWorkspace } from "@/server/session";
-import { addCategory, addRule, categorize, convertToTransfer, createTransfer, deleteCategory, deleteRule, importStatement, quickAdd, reconcileCash } from "@/server/services/capture";
+import { hasKey } from "@/server/ai/gateway";
+import { parseEntryWithAi, suggestCategories } from "@/server/services/ai-features";
+import { NoAmountError, addCategory, addRule, categorize, convertToTransfer, createTransfer, deleteCategory, deleteRule, importStatement, quickAdd, reconcileCash } from "@/server/services/capture";
 import { listAccounts } from "@/server/services/ledger";
 import { exponent, formatMinor, toMinor } from "@/lib/money";
 import { todayISO } from "@/lib/dates";
@@ -16,11 +18,18 @@ const refresh = () => revalidatePath("/app", "layout");
 const fail = (e: unknown): CaptureState => ({ error: e instanceof Error ? e.message : "something went wrong" });
 
 export async function quickAddAction(_: CaptureState, fd: FormData): Promise<CaptureState> {
-  const { workspace } = await requireWorkspace();
+  const { user, workspace } = await requireWorkspace();
   const input = String(fd.get("q") ?? "").trim().slice(0, 200);
   if (!input) return { error: "type something like: chai 20 cash" };
   try {
-    const r = await quickAdd(workspace.id, workspace.homeCurrency, input);
+    let r;
+    try {
+      r = await quickAdd(workspace.id, workspace.homeCurrency, input);
+    } catch (e) {
+      // Free text the local parser cannot read: ask the AI, only if this user has connected a key.
+      if (!(e instanceof NoAmountError) || !(await hasKey(user.id))) throw e;
+      r = await quickAdd(workspace.id, workspace.homeCurrency, input, await parseEntryWithAi(user.id, workspace.id, input));
+    }
     refresh();
     return { message: `added ${formatMinor(r.amountMinor, r.currency)} to ${r.account}${r.text ? ` for ${r.text}` : ""}${r.categorised ? "" : ", needs a category in the inbox"}` };
   } catch (e) { return fail(e); }
@@ -119,4 +128,10 @@ export async function parsePdfAction(fd: FormData): Promise<{ error?: string; ta
   const bytes = new Uint8Array(await file.arrayBuffer());
   if (String.fromCharCode(...bytes.slice(0, 5)) !== "%PDF-") return { error: "that does not look like a PDF" };
   try { return { table: await pdfToTable(bytes) }; } catch (e) { return { error: e instanceof Error ? e.message : "could not read that PDF" }; }
+}
+
+/** Ask the AI to suggest categories for the inbox. Nothing is saved; the page shows them as one-tap choices. */
+export async function suggestCategoriesAction(): Promise<{ error?: string; suggestions?: Record<string, string> }> {
+  const { user, workspace } = await requireWorkspace();
+  try { return { suggestions: await suggestCategories(user.id, workspace.id) }; } catch (e) { return fail(e); }
 }

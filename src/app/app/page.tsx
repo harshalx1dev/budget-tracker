@@ -2,6 +2,10 @@ import { Suspense } from "react";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { requireWorkspace } from "@/server/session";
 import { safeToSpend } from "@/server/services/planner";
+import { AiButton } from "@/components/ai-bits";
+import { summariseMonthAction } from "@/app/app/ai-actions";
+import { hasKey } from "@/server/ai/gateway";
+import { getSummary } from "@/server/services/ai-features";
 import { listAccounts, listCategories, listTransactions, monthSummary } from "@/server/services/ledger";
 import { formatMinor } from "@/lib/money";
 import { thisMonth } from "@/lib/dates";
@@ -10,14 +14,16 @@ import { TransactionForm } from "@/components/transaction-form";
 import { LedgerTable } from "@/components/ledger-table";
 
 async function OverviewLoader() {
-  const { workspace } = await requireWorkspace();
+  const { user, workspace } = await requireWorkspace();
   const home = workspace.homeCurrency;
-  const [accounts, categories, recent, month, sts] = await Promise.all([
+  const [accounts, categories, recent, month, sts, key, summary] = await Promise.all([
     listAccounts(workspace.id),
     listCategories(workspace.id),
     listTransactions(workspace.id, 8),
     monthSummary(workspace.id, home, thisMonth()),
     safeToSpend(workspace.id, home),
+    hasKey(user.id),
+    getSummary(workspace.id, "month", thisMonth()),
   ]);
   // Balances are summed only for accounts in the home currency; others need FX rates (later phase).
   const balance = accounts.filter((a) => a.currency === home).reduce((s, a) => s + a.balanceMinor, 0);
@@ -49,6 +55,11 @@ async function OverviewLoader() {
           <summary className="pill">full form</summary>
         <TransactionForm accounts={accounts} categories={categories} homeCurrency={home} />
         </details>
+      </section>
+      <section className="well stack-sm" style={{ padding: "var(--space-lg)" }} aria-labelledby="sum-h">
+        <h2 id="sum-h">this month in words</h2>
+        {summary ? <p className="prose-ai">{summary.body}</p> : <p className="label">A short AI write-up of how the month is going, built from your own totals.</p>}
+        <AiButton label={summary ? "refresh" : "write this month up"} run={summariseMonthAction} enabled={Boolean(key)} />
       </section>
       <section className="well" aria-labelledby="ledger-h">
         <h2 id="ledger-h" className="well__head">recent</h2>

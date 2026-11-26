@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { categorizeAction, transferAction } from "@/app/app/capture-actions";
+import { Sparkles } from "lucide-react";
+import { categorizeAction, suggestCategoriesAction, transferAction } from "@/app/app/capture-actions";
 import { formatMinor } from "@/lib/money";
 import { formatDay } from "@/lib/dates";
 
@@ -9,7 +10,8 @@ type Row = { id: string; kind: "income" | "expense"; amountMinor: number; curren
 type Cat = { id: string; name: string; kind: "income" | "expense" };
 type Acct = { id: string; name: string; currency: string };
 
-export function InboxList({ rows, categories, accounts }: { rows: Row[]; categories: Cat[]; accounts: Acct[] }) {
+export function InboxList({ rows, categories, accounts, aiEnabled }: { rows: Row[]; categories: Cat[]; accounts: Acct[]; aiEnabled: boolean }) {
+  const [suggestions, setSuggestions] = useState<Record<string, string>>({});
   const [remember, setRemember] = useState(true);
   const [note, setNote] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -20,6 +22,12 @@ export function InboxList({ rows, categories, accounts }: { rows: Row[]; categor
   return (
     <div className="stack-sm">
       <label className="check"><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> remember my choice for similar entries</label>
+      {aiEnabled && (
+        <button type="button" className="btn btn--secondary" disabled={pending} style={{ justifySelf: "start" }}
+          onClick={() => start(async () => { const r = await suggestCategoriesAction(); if (r.error) setNote(r.error); else { setSuggestions(r.suggestions ?? {}); setNote(`${Object.keys(r.suggestions ?? {}).length} suggestions. Tap one to accept it.`); } })}>
+          <Sparkles size={16} aria-hidden /> suggest categories with ai
+        </button>
+      )}
       <p className="label" role="status">{note}</p>
       <ul className="inbox" aria-busy={pending}>
         {rows.map((r) => (
@@ -33,7 +41,7 @@ export function InboxList({ rows, categories, accounts }: { rows: Row[]; categor
             </div>
             <div className="pills" role="group" aria-label={`category for ${r.payee ?? "entry"}`}>
               {categories.filter((c) => c.kind === r.kind).map((c) => (
-                <button key={c.id} type="button" className="pill pill--outline" disabled={pending} onClick={() => run(() => categorizeAction(r.id, c.id, remember))}>{c.name}</button>
+                <button key={c.id} type="button" className="pill pill--outline" data-suggested={suggestions[r.id] === c.id || undefined} title={suggestions[r.id] === c.id ? "suggested by ai" : undefined} disabled={pending} onClick={() => run(() => categorizeAction(r.id, c.id, remember))}>{c.name}</button>
               ))}
               <select className="input input--sm" aria-label="make this a transfer" disabled={pending} value="" onChange={(e) => e.target.value && run(() => transferAction(r.id, e.target.value))}>
                 <option value="">transfer with…</option>

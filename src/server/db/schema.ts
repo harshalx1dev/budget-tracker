@@ -288,3 +288,38 @@ export const wishlistLinks = pgTable("wishlist_links", {
   priceMinor: money("price_minor"), // price at that store, if you noted it
   createdAt: createdAt(),
 }, (t) => [index("wishlist_links_item_idx").on(t.itemId)]);
+
+/* AI (bring your own key) */
+export const aiCredentials = pgTable("ai_credentials", {
+  userId: text("user_id").primaryKey().references(() => user.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull().default("google"),
+  ciphertext: text("ciphertext").notNull(),
+  iv: text("iv").notNull(),
+  authTag: text("auth_tag").notNull(),
+  last4: text("last4").notNull(),
+  validatedAt: timestamp("validated_at", { withTimezone: true }),
+  createdAt: createdAt(),
+});
+
+/** One row per AI call: the usage log and the rate limiter's source of truth. */
+export const aiUsage = pgTable("ai_usage", {
+  id: id(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  feature: text("feature").notNull(),
+  model: text("model").notNull(),
+  ok: boolean("ok").notNull(),
+  error: text("error"),
+  inputTokens: integer("input_tokens"),
+  outputTokens: integer("output_tokens"),
+  createdAt: createdAt(),
+}, (t) => [index("ai_usage_user_time_idx").on(t.userId, t.createdAt)]);
+
+/** Saved AI write-ups (monthly summary, wishlist advice) so a page view never spends a request. */
+export const aiSummaries = pgTable("ai_summaries", {
+  id: id(),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  kind: text("kind").notNull(), // "month" | "wishlist"
+  key: text("key").notNull(), // YYYY-MM for months, "current" for the wishlist
+  body: text("body").notNull(),
+  createdAt: createdAt(),
+}, (t) => [uniqueIndex("ai_summaries_uq").on(t.workspaceId, t.kind, t.key)]);

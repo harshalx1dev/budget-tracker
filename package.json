@@ -11,13 +11,16 @@
     "db:generate": "node --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs generate",
     "db:migrate": "node --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs migrate",
     "db:studio": "node --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs studio",
-    "test": "tsx --test src/lib/lib.test.ts src/lib/phase2.test.ts src/lib/planner.test.ts src/lib/affordability.test.ts",
+    "test": "tsx --test src/lib/lib.test.ts src/lib/phase2.test.ts src/lib/planner.test.ts src/lib/affordability.test.ts src/lib/ai.test.ts",
     "check:capture": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-capture.ts",
     "check:commitments": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-commitments.ts",
     "check:planner": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-planner.ts",
-    "check:wishlist": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-wishlist.ts"
+    "check:wishlist": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-wishlist.ts",
+    "check:ai": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-ai.ts"
   },
   "dependencies": {
+    "@ai-sdk/google": "^4.0.128",
+    "ai": "^7.0.183",
     "better-auth": "^1.7.28",
     "drizzle-orm": "^0.45.4",
     "lucide-react": "^1.80.0",

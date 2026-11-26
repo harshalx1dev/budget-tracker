@@ -2,6 +2,10 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { LinkChip, LinkForm, RatioForm, RemoveIcon, StatusSelect, WishForm } from "@/components/wish-forms";
+import { AiButton } from "@/components/ai-bits";
+import { adviseWishlistAction } from "@/app/app/ai-actions";
+import { hasKey } from "@/server/ai/gateway";
+import { getSummary } from "@/server/services/ai-features";
 import { requireWorkspace } from "@/server/session";
 import { listCategories } from "@/server/services/ledger";
 import { affordability } from "@/server/services/wishlist";
@@ -15,9 +19,9 @@ const host = (u: string) => { try { return new URL(u).hostname.replace(/^www\./,
 const PRIORITY = { 1: "high", 2: "medium", 3: "low" } as const;
 
 async function WishlistLoader() {
-  const { workspace } = await requireWorkspace();
+  const { user, workspace } = await requireWorkspace();
   const home = workspace.homeCurrency;
-  const [categories, a] = await Promise.all([listCategories(workspace.id), affordability(workspace.id, home)]);
+  const [categories, a, key, advice] = await Promise.all([listCategories(workspace.id), affordability(workspace.id, home), hasKey(user.id), getSummary(workspace.id, "wishlist", "current")]);
   const expense = categories.filter((c) => c.kind === "expense");
   const active = a.items.filter((i) => i.status === "wanted" || i.status === "planned");
   const rest = a.items.filter((i) => i.status === "bought" || i.status === "dropped");
@@ -57,6 +61,13 @@ async function WishlistLoader() {
             {blocked.length > 0 && <p className="label">Not affordable before {monthLabel(a.horizonEnd)} on your current plan: {blocked.map((b) => b.title).join(", ")}.</p>}
             <p className="label">Each purchase here uses up room for the next. Your buffer is {formatMinor(a.buffer, home)} and EMIs may take up to {a.maxRatioPct}% of income.</p>
           </>
+        )}
+        {active.length > 0 && (
+          <div className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
+            <h3>in words</h3>
+            {advice ? <p className="prose-ai">{advice.body}</p> : <p className="label">An AI write-up of this plan: what to buy first, what to wait for. It only explains the figures above and never changes them.</p>}
+            <AiButton label={advice ? "write it again" : "explain this plan"} run={adviseWishlistAction} enabled={Boolean(key)} />
+          </div>
         )}
         <div className="stack-sm">
           <p className="label">Largest share of income all EMIs together may take:</p>
