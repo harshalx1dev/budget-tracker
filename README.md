@@ -22,6 +22,9 @@ npm run dev
 | `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` | Auth secret and the site's public URL (also shown as the MCP endpoint host) |
 | `ENCRYPTION_KEY` | 32 random bytes, base64. Encrypts users' saved AI keys. Never change it once keys are saved |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Optional Google sign-in |
+| `ADMIN_EMAILS` | Comma-separated addresses that are admins. Checked at every server start and at sign-up, so an admin can simply sign up. Admins get `/app/admin`: accounts and usage totals, never anyone's entries |
+| `ADMIN_PASSWORD` | Optional. Creates the first admin address with this password at start-up and resets it when this value changes |
+| `ADMIN_GEMINI_API_KEY` | Optional. A Gemini key admins use when they have not added their own (higher limits, counted separately) |
 | `GEMINI_MODEL`, `GEMINI_BASIC_MODEL` | Optional model overrides for the AI features |
 | `VAPID_*`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Web-push keys for bill reminders (`npx web-push generate-vapid-keys`). Set `VAPID_SUBJECT` to a contact such as `mailto:you@your-domain` |
 | `CRON_SECRET` | Protects `/api/cron/reminders`. The schedule is in `vercel.json` (daily, 09:00 India time) |
@@ -40,6 +43,7 @@ npm run check:wishlist
 npm run check:ai          # uses a fake generator, no Gemini key needed
 npm run check:polish
 npm run check:mcp         # needs a running server: npm run build; npm run start
+npm run check:admin       # start the server with ADMIN_EMAILS=hook-admin@budget.test first
 ```
 
 ## Notes

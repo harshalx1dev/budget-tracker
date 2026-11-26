@@ -32,3 +32,13 @@ test("scopes and state: read is not write; revoked and expired are not active", 
   assert.equal(expiryDate(0, now), null);
   assert.equal(expiryDate(30, now)!.toISOString(), "2026-12-31T00:00:00.000Z");
 });
+
+import { adminEmails, isAdminEmail } from "../server/admin-bootstrap";
+
+test("admin emails: trimmed, lower-cased, blanks dropped", () => {
+  assert.deepEqual(adminEmails(" A@x.com , ,b@Y.com "), ["a@x.com", "b@y.com"]);
+  assert.deepEqual(adminEmails(undefined), []);
+  assert.equal(isAdminEmail("B@y.COM", "a@x.com,b@y.com"), true);
+  assert.equal(isAdminEmail("c@y.com", "a@x.com,b@y.com"), false);
+  assert.equal(isAdminEmail("anyone@x.com", ""), false);
+});

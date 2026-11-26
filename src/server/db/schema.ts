@@ -13,6 +13,8 @@ export const user = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
+  // "user" | "admin". Set only by the server (ADMIN_EMAILS), never from a sign-up form.
+  role: text("role").notNull().default("user"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
@@ -309,6 +311,7 @@ export const aiUsage = pgTable("ai_usage", {
   id: id(),
   userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
   feature: text("feature").notNull(),
+  keySource: text("key_source").notNull().default("user"), // "user" = their own key, "admin" = the app key
   model: text("model").notNull(),
   ok: boolean("ok").notNull(),
   error: text("error"),

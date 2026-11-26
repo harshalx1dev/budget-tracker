@@ -22,6 +22,12 @@ async function SettingsLoader() {
         <h2>account</h2>
         <p>{user.name} <span className="label">{user.email}</span></p>
       </section>
+      {user.role === "admin" && (
+        <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
+          <h2>admin</h2>
+          <p><Link href="/app/admin" className="link">accounts and usage across the app</Link></p>
+        </section>
+      )}
       <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
         <h2>ai</h2>
         <AiKeyForm connected={connected} usedToday={used} />

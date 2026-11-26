@@ -18,7 +18,8 @@
     "check:wishlist": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-wishlist.ts",
     "check:ai": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-ai.ts",
     "check:mcp": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-mcp.ts",
-    "check:polish": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-polish.ts"
+    "check:polish": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-polish.ts",
+    "check:admin": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-admin.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.128",

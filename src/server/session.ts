@@ -7,17 +7,25 @@ import { auth } from "@/server/auth";
 import { db, schema } from "@/server/db";
 import { createPersonalWorkspace } from "@/server/services/workspace";
 
-export type CurrentUser = { id: string; name: string; email: string };
+export type CurrentUser = { id: string; name: string; email: string; role: "user" | "admin" };
 export type Workspace = { id: string; name: string; homeCurrency: string };
 
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const s = await auth.api.getSession({ headers: await headers() });
-  return s ? { id: s.user.id, name: s.user.name, email: s.user.email } : null;
+  if (!s) return null;
+  const role = (s.user as { role?: string }).role === "admin" ? "admin" : "user";
+  return { id: s.user.id, name: s.user.name, email: s.user.email, role };
 });
 
 export async function requireUser() {
   const u = await getCurrentUser();
   if (!u) redirect("/login");
+  return u;
+}
+
+export async function requireAdmin() {
+  const u = await requireUser();
+  if (u.role !== "admin") redirect("/app");
   return u;
 }
 

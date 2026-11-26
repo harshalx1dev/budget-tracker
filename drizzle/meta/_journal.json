@@ -57,6 +57,13 @@
       "when": 1795701696860,
       "tag": "0007_busy_blonde_phantom",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795706698143,
+      "tag": "0008_perfect_serpent_society",
+      "breakpoints": true
     }
   ]
 }
