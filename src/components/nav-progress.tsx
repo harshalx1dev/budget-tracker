@@ -24,6 +24,7 @@ export function NavProgress() {
       if (!a || a.target === "_blank" || a.hasAttribute("download")) return;
       const url = new URL(a.href, window.location.href);
       if (url.origin !== window.location.origin || url.pathname === window.location.pathname) return;
+      document.documentElement.dataset.loading = "1"; // before React renders, so the screen is up on the very frame of the click
       setFrom(window.location.pathname);
       setStartedAt(Date.now());
       setShow(true);
@@ -36,7 +37,7 @@ export function NavProgress() {
   useEffect(() => {
     if (!show) return;
     const wait = arrived ? Math.max(0, MIN_MS - (Date.now() - startedAt)) : Math.max(0, MAX_MS - (Date.now() - startedAt));
-    const t = setTimeout(() => { setShow(false); setFrom(null); }, wait);
+    const t = setTimeout(() => { delete document.documentElement.dataset.loading; setShow(false); setFrom(null); }, wait);
     return () => clearTimeout(t);
   }, [show, arrived, startedAt]);
 
