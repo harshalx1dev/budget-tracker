@@ -67,7 +67,7 @@ export function CommandPalette() {
           {shown.length === 0 && <li className="label palette__none">Nothing matches</li>}
           {shown.map((c, i) => (
             <li key={c.id} id={`cmd-${c.id}`} role="option" aria-selected={i === active} data-active={i === active} onMouseEnter={() => setActive(i)} onClick={() => choose(c)}>
-              <span>{c.label}</span>{c.hint ? <kbd className="label">{c.hint}</kbd> : null}
+              <span suppressHydrationWarning>{c.label}</span>{c.hint ? <kbd className="label">{c.hint}</kbd> : null}
             </li>
           ))}
         </ul>

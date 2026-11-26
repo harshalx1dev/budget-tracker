@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { Gem, HandCoins, TrendingUp, Wallet } from "lucide-react";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { ForecastChart } from "@/components/forecast-chart";
 import { AssetForm, DepositForm, EmergencyForm, MaturityButtons, ValuationForm } from "@/components/savings-forms";
@@ -33,10 +34,10 @@ async function SavingsLoader() {
       <p className="lead">What you have put away, what it is worth, and whether your safety net is big enough. Savings and investments never count toward what is safe to spend.</p>
 
       <section className="stats" aria-label="Net worth">
-        <div className="stat well"><p className="label">Net worth</p><p className="figure">{formatMinor(nw.netWorthMinor, home)}</p></div>
-        <div className="stat well"><p className="label">In your accounts</p><p className="figure">{formatMinor(nw.liquidMinor, home)}</p></div>
-        <div className="stat well"><p className="label">Savings and investments</p><p className="figure">{formatMinor(nw.assetsMinor, home)}</p></div>
-        <div className="stat well"><p className="label">Loans still owed</p><p className="figure">{formatMinor(nw.liabilitiesMinor, home)}</p></div>
+        <div className="stat well"><div className="stat__top"><p className="label">Net worth</p><span className="stat__icon"><Gem size={18} aria-hidden /></span></div><p className="figure">{formatMinor(nw.netWorthMinor, home)}</p></div>
+        <div className="stat well"><div className="stat__top"><p className="label">In your accounts</p><span className="stat__icon"><Wallet size={18} aria-hidden /></span></div><p className="figure">{formatMinor(nw.liquidMinor, home)}</p></div>
+        <div className="stat well"><div className="stat__top"><p className="label">Savings and investments</p><span className="stat__icon"><TrendingUp size={18} aria-hidden /></span></div><p className="figure">{formatMinor(nw.assetsMinor, home)}</p></div>
+        <div className="stat well"><div className="stat__top"><p className="label">Loans still owed</p><span className="stat__icon"><HandCoins size={18} aria-hidden /></span></div><p className="figure">{formatMinor(nw.liabilitiesMinor, home)}</p></div>
       </section>
       {nw.loansWithoutBalance > 0 && <p className="label">{nw.loansWithoutBalance} loan{nw.loansWithoutBalance === 1 ? "" : "s"} without a balance left aren&apos;t counted. Add the balance on the loan to include {nw.loansWithoutBalance === 1 ? "it" : "them"}.</p>}
       <p className="label">

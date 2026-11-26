@@ -44,7 +44,7 @@ export default function Landing() {
             </div>
           </div>
 
-          <figure className="hero__card well" aria-label="Sample of the safe-to-spend view">
+          <figure className="hero__card well well--cloth" aria-label="Sample of the safe-to-spend view">
             <figcaption className="label">Sample data</figcaption>
             <p className="label">Safe to spend until payday</p>
             <p className="figure figure--hero">₹18,400</p>
@@ -84,7 +84,7 @@ export default function Landing() {
         </section>
 
         <section className="land__section container" aria-labelledby="own-h">
-          <div className="band well">
+          <div className="band well well--cloth">
             <CloudOff size={22} aria-hidden />
             <h2 id="own-h">Your data stays yours</h2>
             <p>Export everything as CSV or JSON any time. AI is optional and uses your own key. Agent access is read-only unless you allow more, and you can revoke it in one click.</p>
