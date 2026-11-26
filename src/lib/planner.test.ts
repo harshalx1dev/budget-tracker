@@ -1,12 +1,28 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { budgetAvailable, computeMonthlySafe, computeSafeToSpend, goalProgress, monthEnd, monthsBetween, projectForecast, variableSpend } from "./planner";
+import { beyondBills, budgetAvailable, computeMonthlySafe, computeSafeToSpend, goalHolds, goalProgress, monthEnd, monthsBetween, projectForecast, variableSpend } from "./planner";
 
 test("monthly safe to spend: this cycle's money, never more than the accounts hold", () => {
   const base = { income: 78000, spent: 57817, saved: 10000, dueOutflows: 2000, goalSetAside: 0, accountSafe: 74263, days: 4 };
   assert.deepEqual(computeMonthlySafe(base), { safe: 8183, capped: false, perDay: 2045 });
   assert.deepEqual(computeMonthlySafe({ ...base, accountSafe: 5000 }), { safe: 5000, capped: true, perDay: 1250 });
   assert.equal(computeMonthlySafe({ ...base, income: 0 }).perDay, 0);
+});
+
+test("forecast: a bill already in the plan is not counted again from history", () => {
+  const average = new Map<string | null, number>([["rent", 24000], ["emi", 10000], ["food", 5000], [null, 1200]]);
+  const month = new Map<string | null, number>([["rent", 24000], ["emi", 18000]]);
+  const withYearly = new Map<string | null, number>([...month, ["food", 99000]]);
+  assert.equal(beyondBills(average, [month, withYearly, month]), 6200);
+  assert.equal(beyondBills(average, []), 40200);
+});
+
+test("goals hold money back only when fixed, or when it has actually been put aside", () => {
+  const trip = { fixed: false, byHand: true, saved: 0, keptThisCycle: 0, addedThisMonth: 0, requiredMonthly: 20000 };
+  assert.deepEqual(goalHolds([trip]), { fromAccounts: 0, fromCycle: 0 });
+  assert.deepEqual(goalHolds([{ ...trip, saved: 12000, keptThisCycle: 5000, addedThisMonth: 5000 }]), { fromAccounts: 12000, fromCycle: 5000 });
+  assert.deepEqual(goalHolds([{ ...trip, fixed: true, addedThisMonth: 5000, saved: 5000, keptThisCycle: 5000 }]), { fromAccounts: 20000, fromCycle: 20000 });
+  assert.deepEqual(goalHolds([{ ...trip, byHand: false, saved: 90000 }]), { fromAccounts: 0, fromCycle: 0 });
 });
 
 test("months: end of month and distance", () => {

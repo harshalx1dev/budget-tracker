@@ -10,7 +10,7 @@ import { formatMinor } from "@/lib/money";
 import { isAssetType } from "@/lib/savings";
 import { formatDay, formatDayYear, shiftDays, todayISO } from "@/lib/dates";
 
-export const metadata = { title: "Commitments" };
+export const metadata = { title: "Bills & EMIs" };
 
 const FREQ = { weekly: "week", monthly: "month", yearly: "year" } as const;
 
@@ -35,7 +35,7 @@ async function CommitmentsLoader() {
 
   return (
     <div className="settle stack">
-      <div className="head-row"><h1>Commitments</h1><MatchNowButton /></div>
+      <div className="head-row"><h1>Bills & EMIs</h1><MatchNowButton /></div>
 
       {loanRows.length > 0 && <Summary figure={formatMinor(monthly, home, { whole: true })} caption="goes to EMIs each month right now" />}
 
@@ -92,7 +92,7 @@ async function CommitmentsLoader() {
       </section>
 
       <section className="stack-sm" aria-labelledby="rec-h">
-        <h2 id="rec-h">Recurring</h2>
+        <h2 id="rec-h">Regular payments and income</h2>
         <p className="label">Salary, rent, subscriptions and SIPs. Give an end date or a count if it stops.</p>
         {rules.length > 0 && (
           <div className="well table-wrap">

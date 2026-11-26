@@ -11,8 +11,8 @@ import { ThemeToggle } from "./theme-toggle";
 
 const LINKS = [
   { href: "/app", label: "Overview", Icon: LayoutDashboard },
-  { href: "/app/transactions", label: "Ledger", Icon: ReceiptText },
-  { href: "/app/inbox", label: "Inbox", Icon: Inbox },
+  { href: "/app/transactions", label: "Transactions", Icon: ReceiptText },
+  { href: "/app/inbox", label: "To sort", Icon: Inbox },
   { href: "/app/plan", label: "Plan", Icon: Target },
   { href: "/app/accounts", label: "Accounts", Icon: Landmark },
   { href: "/app/settings", label: "Settings", Icon: Settings },

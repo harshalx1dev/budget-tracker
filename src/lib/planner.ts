@@ -39,6 +39,21 @@ export function variableSpend(input: {
   return Math.round(budgeted + input.unbudgetedAvg * input.fractionLeft);
 }
 
+/**
+ * What categories without a budget usually cost beyond their known bills. Past rent or EMIs that were never linked
+ * to a bill sit in the average, so each category's usual monthly bill is taken out, or it would be counted twice.
+ */
+export function beyondBills(average: Map<string | null, number>, billsByMonth: Map<string | null, number>[]) {
+  let total = 0;
+  for (const [category, avg] of average) {
+    const bills = billsByMonth.map((m) => m.get(category) ?? 0).sort((a, b) => a - b);
+    // The median month ignores a once-a-year bill and still sees a loan that ends partway through.
+    const usual = category === null || !bills.length ? 0 : bills[Math.floor(bills.length / 2)];
+    total += Math.max(0, avg - usual);
+  }
+  return Math.round(total);
+}
+
 /* ---- safe to spend ---- */
 export function computeSafeToSpend(i: { balance: number; dueOutflows: number; goalSetAside: number; buffer: number; days: number }) {
   const safe = i.balance - i.dueOutflows - i.goalSetAside - i.buffer;
@@ -55,6 +70,21 @@ export function computeMonthlySafe(i: { income: number; spent: number; saved: nu
   const safe = Math.min(left, i.accountSafe);
   const days = Math.max(1, i.days);
   return { safe, capped: safe < left, perDay: safe > 0 ? Math.floor(safe / days) : 0 };
+}
+
+/**
+ * Goal money that is not free to spend. A fixed goal holds back what is still owed to it this month, like a bill.
+ * Money already put aside by hand is held either way: all of it against account balances, this cycle's against
+ * this cycle's income. A flexible goal with nothing put aside holds nothing.
+ */
+export function goalHolds(goals: { fixed: boolean; byHand: boolean; saved: number; keptThisCycle: number; addedThisMonth: number; requiredMonthly: number | null }[]) {
+  let fromAccounts = 0, fromCycle = 0;
+  for (const g of goals) {
+    const owed = g.fixed ? Math.max(0, (g.requiredMonthly ?? 0) - g.addedThisMonth) : 0;
+    fromAccounts += owed + (g.byHand ? Math.max(0, g.saved) : 0);
+    fromCycle += owed + (g.byHand ? Math.max(0, g.keptThisCycle) : 0);
+  }
+  return { fromAccounts, fromCycle };
 }
 
 /* ---- goals ---- */

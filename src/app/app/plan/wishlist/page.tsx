@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { PageSkeleton } from "@/components/page-skeleton";
-import { LinkChip, LinkForm, RatioForm, RemoveIcon, StatusSelect, WishForm } from "@/components/wish-forms";
+import { BoughtButton, LinkChip, LinkForm, RatioForm, RemoveIcon, StatusSelect, WishForm } from "@/components/wish-forms";
+import { AddPanel } from "@/components/add-panel";
 import { AiButton } from "@/components/ai-bits";
 import { adviseWishlistAction } from "@/app/app/ai-actions";
 import { hasKey } from "@/server/ai/gateway";
@@ -10,104 +11,85 @@ import { requireWorkspace } from "@/server/session";
 import { listCategories } from "@/server/services/ledger";
 import { affordability } from "@/server/services/wishlist";
 import { formatMinor } from "@/lib/money";
-import { formatDayYear } from "@/lib/dates";
+import { formatDayYear, thisMonth } from "@/lib/dates";
 
-export const metadata = { title: "Wishlist" };
+export const metadata = { title: "Want to buy" };
 
 const monthLabel = (ym: string) => new Date(`${ym}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "short", year: "numeric", timeZone: "UTC" });
 const host = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; } };
-const PRIORITY = { 1: "high", 2: "medium", 3: "low" } as const;
+const KIND = { need: "Must have", want: "Nice to have", desire: "Someday" } as const;
 
 async function WishlistLoader() {
   const { user, workspace } = await requireWorkspace();
   const home = workspace.homeCurrency;
   const [categories, a, key, advice] = await Promise.all([listCategories(workspace.id), affordability(workspace.id, home), hasKey(user.id), getSummary(workspace.id, "wishlist", "current")]);
   const expense = categories.filter((c) => c.kind === "expense");
-  const active = a.items.filter((i) => i.status === "wanted" || i.status === "planned");
   const rest = a.items.filter((i) => i.status === "bought" || i.status === "dropped");
-  // Planned in priority order (each purchase uses room), shown by date so the list reads as a timeline.
-  const plans = a.order.filter((o) => o.month).sort((x, y) => x.month!.localeCompare(y.month!));
-  const blocked = a.order.filter((o) => !o.month);
+  const now = thisMonth();
+  const money = (v: number) => formatMinor(v, home, { whole: true });
+  // Each purchase uses up room for the next, so the plan's order is what is shown: soonest first.
+  const list = a.order.map((o) => ({ ...o, item: a.items.find((i) => i.id === o.id)! })).sort((x, y) => (x.month ?? "9999").localeCompare(y.month ?? "9999"));
+  const when = (o: (typeof list)[number]) =>
+    !o.month ? { tone: "later", text: `Not before ${monthLabel(a.horizonEnd)}` }
+    : o.method === "emi" ? { tone: o.month === now ? "now" : "soon", text: `${money(o.emiMinor ?? 0)} a month for ${o.tenure} months, from ${monthLabel(o.month)}` }
+    : o.month === now ? { tone: "now", text: "You can buy this now" } : { tone: "soon", text: `From ${monthLabel(o.month)}` };
 
   return (
     <div className="settle stack">
-      <h1>Wishlist</h1>
-      <p className="lead">What you want to buy, and when you can afford it.</p>
-
-      <section className="stack-sm" aria-labelledby="ord-h">
-        <h2 id="ord-h">What to buy, and when</h2>
-        {!a.incomeKnown && <p className="label">Income is not planned yet, so the EMI share of income cannot be checked. <Link href="/app/plan/commitments" className="link">Add your salary</Link>.</p>}
-        {active.length === 0 ? (
-          <div className="well empty"><h3>Nothing to plan yet</h3><p>Add something you want below. Needs are planned first, then by priority.</p></div>
-        ) : (
-          <>
-            {plans.length > 0 && (
-              <ol className="plan-list">
-                {plans.map((o, i) => (
-                  <li key={o.id} className="well plan-item">
-                    <span className="plan-item__n figure figure--s">{i + 1}</span>
-                    <div>
-                      <p>{o.title} <span className="label">{formatMinor(o.priceMinor, home)}</span></p>
-                      <p className="label">
-                        {o.method === "outright"
-                          ? `pay in full in ${monthLabel(o.month!)}`
-                          : `${formatMinor(o.downMinor ?? 0, home)} down in ${monthLabel(o.month!)}, then ${formatMinor(o.emiMinor ?? 0, home)} a month for ${o.tenure} months${o.interestMinor ? `, ${formatMinor(o.interestMinor, home)} of interest` : ""}`}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            )}
-            {blocked.length > 0 && <p className="label">Not affordable before {monthLabel(a.horizonEnd)} on your current plan: {blocked.map((b) => b.title).join(", ")}.</p>}
-            <p className="label">Each purchase here uses up room for the next. Your buffer is {formatMinor(a.buffer, home)} and EMIs may take up to {a.maxRatioPct}% of income.</p>
-          </>
-        )}
-        {active.length > 0 && (
-          <div className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
-            <h3>In words</h3>
-            {advice ? <p className="prose-ai">{advice.body}</p> : <p className="label">An AI write-up of this plan: what to buy first, what to wait for. It only explains the figures above and never changes them.</p>}
-            <AiButton label={advice ? "Write it again" : "Explain this plan"} run={adviseWishlistAction} enabled={Boolean(key)} />
-          </div>
-        )}
-        <div className="stack-sm">
-          <p className="label">Largest share of income all EMIs together may take:</p>
-          <RatioForm current={a.maxRatioPct} />
-        </div>
-      </section>
-
-      <section className="stack-sm" aria-labelledby="add-h">
-        <h2 id="add-h">Add something</h2>
-        <details className="more"><summary className="btn btn--secondary">Add to wishlist</summary><WishForm categories={expense} /></details>
-      </section>
-
-      {active.length > 0 && (
-        <section className="stack-sm" aria-labelledby="items-h">
-          <h2 id="items-h">On the list</h2>
-          <ul className="bars">
-            {active.map((i) => (
-              <li key={i.id} className="well bar">
+      <h1>Want to buy</h1>
+      {list.length > 0 && <p className="label">These dates use all the money in your accounts, not only what is free this month.</p>}
+      {list.length === 0 ? (
+        <div className="well empty"><h3>Nothing here yet</h3><p>Add something you want and the app tells you when you can afford it.</p></div>
+      ) : (
+        <ul className="well rows">
+          {list.map((o) => {
+            const w = when(o);
+            const i = o.item;
+            return (
+              <li key={o.id} className="row">
                 <div className="bar__head">
-                  <p>{i.title} <span className="label">{i.type}, {PRIORITY[i.priority as 1 | 2 | 3]} priority</span></p>
-                  <p className="num">{formatMinor(i.priceMinor, home)}</p>
-                  <span className="head-actions"><StatusSelect id={i.id} status={i.status} /><RemoveIcon kind="wish" id={i.id} label={`Delete ${i.title}`} /></span>
+                  <p className="row__title">{o.title}</p>
+                  <p className="row__value">{money(o.priceMinor)}</p>
                 </div>
-                <p className="label">
-                  {i.outrightMonth ? `In full from ${monthLabel(i.outrightMonth)}` : "Not affordable in full yet"}
-                  {i.emi ? `; on EMI from ${monthLabel(i.emi.month)} at ${formatMinor(i.emi.emiMinor, home)} a month for ${i.emi.tenure} months${i.emi.interestMinor ? ` (${formatMinor(i.emi.interestMinor, home)} interest)` : ""}${i.emi.ratioUnknown ? ", EMI share of income unchecked" : ""}` : i.emiTenureMonths ? "; not possible on EMI yet" : ""}
-                  {i.targetDate ? `. You wanted it by ${formatDayYear(i.targetDate)}${(i.outrightMonth ?? "9999") > i.targetDate.slice(0, 7) && (i.emi?.month ?? "9999") > i.targetDate.slice(0, 7) ? ", which this plan misses" : ""}` : ""}
-                </p>
-                {i.notes && <p className="label">{i.notes}</p>}
-                <div className="chips">{i.links.map((l) => <LinkChip key={l.id} id={l.id} url={l.url} label={l.label ?? host(l.url)} price={l.priceMinor ? formatMinor(l.priceMinor, home) : null} />)}</div>
-                <LinkForm itemId={i.id} />
+                <div className="wish__foot">
+                  <p className="when" data-tone={w.tone}>{w.text}</p>
+                  <span className="head-actions"><BoughtButton id={o.id} /><RemoveIcon kind="wish" id={o.id} label={`Delete ${o.title}`} /></span>
+                </div>
+                <details className="wish__more">
+                  <summary className="link">Details and price links</summary>
+                  <div className="stack-sm">
+                    <p className="label">{KIND[i.type]}.{i.targetDate ? ` Wanted by ${formatDayYear(i.targetDate)}.` : ""}{o.interestMinor ? ` EMI interest ${money(o.interestMinor)}.` : ""}{i.notes ? ` ${i.notes}` : ""}</p>
+                    <div className="chips">{i.links.map((l) => <LinkChip key={l.id} id={l.id} url={l.url} label={l.label ?? host(l.url)} price={l.priceMinor ? formatMinor(l.priceMinor, home) : null} />)}</div>
+                    <LinkForm itemId={i.id} />
+                  </div>
+                </details>
               </li>
-            ))}
-          </ul>
-        </section>
+            );
+          })}
+        </ul>
       )}
 
+      <AddPanel label="Add something you want" open={list.length === 0}><WishForm categories={expense} /></AddPanel>
+
+      <details className="more">
+        <summary className="btn btn--secondary">How are these dates decided?</summary>
+        <div className="stack-sm">
+          <p className="label">The app looks six months and more ahead at your salary, bills and spending. It keeps {money(a.buffer)} untouched and lets all EMIs together take at most {a.maxRatioPct}% of your income.</p>
+          {!a.incomeKnown && <p className="label">No salary is planned yet. <Link href="/app/plan/commitments" className="link">Add your salary</Link>.</p>}
+          <p className="label">Most of your income that EMIs may take, in percent:</p>
+          <RatioForm current={a.maxRatioPct} />
+          {list.length > 0 && (
+            <>
+              {advice ? <p className="prose-ai">{advice.body}</p> : null}
+              <AiButton label={advice ? "Explain again with AI" : "Explain this with AI"} run={adviseWishlistAction} enabled={Boolean(key)} />
+            </>
+          )}
+        </div>
+      </details>
+
       {rest.length > 0 && (
-        <section className="stack-sm" aria-labelledby="done-h">
-          <h2 id="done-h">Bought and dropped</h2>
+        <details className="more">
+          <summary className="btn btn--secondary">Bought and dropped ({rest.length})</summary>
           <div className="well table-wrap">
             <table className="ledger">
               <tbody>
@@ -117,7 +99,7 @@ async function WishlistLoader() {
               </tbody>
             </table>
           </div>
-        </section>
+        </details>
       )}
     </div>
   );

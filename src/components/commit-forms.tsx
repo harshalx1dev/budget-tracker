@@ -112,7 +112,7 @@ export function MatchNowButton() {
   const [pending, start] = useTransition();
   return (
     <span className="match-now">
-      <button type="button" className="btn btn--secondary" disabled={pending} onClick={() => start(async () => setNote((await matchNowAction()).message ?? null))}>{pending ? "Checking" : "Match payments"}</button>
+      <button type="button" className="btn btn--secondary" disabled={pending} onClick={() => start(async () => setNote((await matchNowAction()).message ?? null))}>{pending ? "Checking" : "Find paid bills"}</button>
       <span className="label" role="status">{note}</span>
     </span>
   );

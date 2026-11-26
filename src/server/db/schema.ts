@@ -257,6 +257,8 @@ export const goals = pgTable("goals", {
   targetDate: date("target_date"),
   // When set, progress is that account's value instead of hand-entered contributions.
   accountId: text("account_id").references(() => accounts.id, { onDelete: "set null" }),
+  // Fixed: the monthly amount is held back from free-to-spend like a bill. Flexible: only money actually put aside is.
+  fixed: boolean("fixed").notNull().default(false),
   archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: createdAt(),
 }, (t) => [index("goals_workspace_idx").on(t.workspaceId)]);

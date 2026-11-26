@@ -19,7 +19,7 @@ export function CategorySelect({ id, value, needsReview, label, options }: { id:
         defaultValue={value ?? ""}
         onChange={(e) => { const next = e.target.value; start(async () => { const r = await categorizeAction(id, next, false); setError(r.error ?? null); }); }}
       >
-        {!value && <option value="" disabled>{needsReview ? "Needs review" : "No category"}</option>}
+        {!value && <option value="" disabled>{needsReview ? "Pick a category" : "No category"}</option>}
         {options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
       </select>
       {error && <span className="error" role="alert">{error}</span>}

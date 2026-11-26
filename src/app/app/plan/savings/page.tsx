@@ -38,7 +38,7 @@ async function SavingsLoader() {
         <div><dt><TrendingUp size={16} aria-hidden />Saved and invested</dt><dd>{formatMinor(nw.assetsMinor, home, { whole: true })}</dd></div>
         <div><dt><HandCoins size={16} aria-hidden />Loans still owed</dt><dd>{formatMinor(nw.liabilitiesMinor, home, { whole: true })}</dd></div>
       </dl>
-      {nw.loansWithoutBalance > 0 && <p className="label">{nw.loansWithoutBalance} loan{nw.loansWithoutBalance === 1 ? "" : "s"} without a balance left aren&apos;t counted. Add the balance on the loan to include {nw.loansWithoutBalance === 1 ? "it" : "them"}.</p>}
+      {nw.loansWithoutBalance > 0 && <p className="label">{nw.loansWithoutBalance === 1 ? "One loan isn’t" : `${nw.loansWithoutBalance} loans aren’t`} counted because the amount still owed is unknown. Add it on the loan to include {nw.loansWithoutBalance === 1 ? "it" : "them"}.</p>}
       <p className="label">
         {now.saved < 0 ? `This month you took ${formatMinor(-now.saved, home)} out of savings and investments.`
           : rate === null ? "Add your salary to see your savings rate."

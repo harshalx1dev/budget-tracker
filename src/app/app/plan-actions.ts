@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireWorkspace } from "@/server/session";
-import { addContribution, addGoal, archiveGoal, deleteBudget, setBudget, setBuffer } from "@/server/services/planner";
+import { addContribution, addGoal, archiveGoal, deleteBudget, setBudget, setBuffer, setGoalFixed } from "@/server/services/planner";
 import { toMinor } from "@/lib/money";
 import { thisMonth, todayISO } from "@/lib/dates";
 
@@ -36,7 +36,7 @@ export async function addGoalAction(_: PlanState, fd: FormData): Promise<PlanSta
   if (!name || !target) return { error: "Name and target amount are needed" };
   if (date && !date.success) return { error: "Target date is not valid" };
   if (date?.success && date.data <= todayISO()) return { error: "Target date should be in the future" };
-  try { await addGoal(workspace.id, name, target, date?.success ? date.data : null, String(fd.get("accountId") ?? "") || null); refresh(); return { message: "Goal added" }; } catch (e) { return fail(e); }
+  try { await addGoal(workspace.id, name, target, date?.success ? date.data : null, String(fd.get("accountId") ?? "") || null, fd.get("fixed") === "yes"); refresh(); return { message: "Goal added" }; } catch (e) { return fail(e); }
 }
 
 export async function addContributionAction(_: PlanState, fd: FormData): Promise<PlanState> {
@@ -46,6 +46,12 @@ export async function addContributionAction(_: PlanState, fd: FormData): Promise
   const minor = toMinor(raw, workspace.homeCurrency);
   if (!minor) return { error: "Enter an amount above zero" };
   try { await addContribution(workspace.id, String(fd.get("goalId")), withdraw ? -minor : minor, todayISO(), null); refresh(); return { message: withdraw ? "withdrawn" : "saved" }; } catch (e) { return fail(e); }
+}
+
+export async function setGoalFixedAction(id: string, fixed: boolean) {
+  const { workspace } = await requireWorkspace();
+  await setGoalFixed(workspace.id, id, fixed);
+  refresh();
 }
 
 export async function archiveGoalAction(id: string) {

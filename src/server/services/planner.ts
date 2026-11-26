@@ -5,7 +5,7 @@ import { listAccounts } from "@/server/services/ledger";
 import { listExpected } from "@/server/services/commitments";
 import { listAssets, upcomingMaturities } from "@/server/services/savings";
 import { ASSET_TYPES, isAssetType } from "@/lib/savings";
-import { budgetAvailable, computeMonthlySafe, computeSafeToSpend, goalProgress, monthEnd, nextMonth, projectForecast, variableSpend, type ForecastMonth } from "@/lib/planner";
+import { budgetAvailable, computeMonthlySafe, beyondBills, computeSafeToSpend, goalHolds, goalProgress, monthEnd, nextMonth, projectForecast, variableSpend, type ForecastMonth } from "@/lib/planner";
 import { addMonths, daysBetween, shiftDays, todayISO } from "@/lib/dates";
 
 const { budgets, categories, expectedMatches, goalContributions, goals, transactions, workspaces } = schema;
@@ -72,12 +72,14 @@ export async function listGoals(workspaceId: string) {
   });
 }
 
-export async function addGoal(workspaceId: string, name: string, targetMinor: number, targetDate: string | null, accountId: string | null = null) {
+export const setGoalFixed = (workspaceId: string, id: string, fixed: boolean) => db.update(goals).set({ fixed }).where(and(eq(goals.id, id), eq(goals.workspaceId, workspaceId)));
+
+export async function addGoal(workspaceId: string, name: string, targetMinor: number, targetDate: string | null, accountId: string | null = null, fixed = false) {
   if (accountId) {
     const [a] = await db.select({ type: schema.accounts.type }).from(schema.accounts).where(and(eq(schema.accounts.id, accountId), eq(schema.accounts.workspaceId, workspaceId)));
     if (!a || !isAssetType(a.type)) throw new Error("Pick a savings or investment account to track this goal");
   }
-  await db.insert(goals).values({ workspaceId, name, targetMinor, targetDate, accountId });
+  await db.insert(goals).values({ workspaceId, name, targetMinor, targetDate, accountId, fixed });
 }
 
 export async function addContribution(workspaceId: string, goalId: string, amountMinor: number, madeOn: string, note: string | null) {
@@ -110,13 +112,22 @@ export async function safeToSpend(workspaceId: string, homeCurrency: string) {
   const horizon = nextIncome ?? shiftDays(monthEnd(today.slice(0, 7)), 1);
   const due = unpaid.filter((e) => e.kind === "expense" && e.dueOn < horizon);
   const dueOutflows = due.reduce((s, e) => s + e.amountMinor, 0);
-  const goalSetAside = goalRows.reduce((s, g) => s + (g.requiredMonthly ? Math.max(0, g.requiredMonthly - g.contributedThisMonth) : 0), 0);
-  const calc = computeSafeToSpend({ balance, dueOutflows, goalSetAside, buffer: ws.buffer, days: daysBetween(today, horizon) });
   // The cycle began on the last payday that actually arrived; without one it is the calendar month.
   const lastPay = expected.filter((e) => e.kind === "income" && e.status === "paid" && e.dueOn <= shiftDays(today, 5)).map((e) => e.dueOn).sort().at(-1) ?? null;
   const cycleStart = lastPay ? await paidOn(workspaceId, expected, lastPay) : `${today.slice(0, 7)}-01`;
+  const kept = await db.select({ goalId: goalContributions.goalId, n: sql<number>`sum(${goalContributions.amountMinor})`.mapWith(Number) })
+    .from(goalContributions).where(and(eq(goalContributions.workspaceId, workspaceId), gte(goalContributions.madeOn, cycleStart))).groupBy(goalContributions.goalId);
+  const movedIn = await db.select({ accountId: transactions.accountId, n: sql<number>`sum(${transactions.amountMinor})`.mapWith(Number) })
+    .from(transactions).where(and(eq(transactions.workspaceId, workspaceId), eq(transactions.kind, "income"), sql`${transactions.transferId} is not null`, gte(transactions.occurredOn, `${today.slice(0, 7)}-01`))).groupBy(transactions.accountId);
+  const holds = goalHolds(goalRows.map((g) => ({
+    fixed: g.fixed, byHand: !g.accountId, saved: g.saved, requiredMonthly: g.requiredMonthly,
+    keptThisCycle: kept.find((k) => k.goalId === g.id)?.n ?? 0,
+    addedThisMonth: g.accountId ? (movedIn.find((m) => m.accountId === g.accountId)?.n ?? 0) : g.contributedThisMonth,
+  })));
+  const goalSetAside = holds.fromAccounts;
+  const calc = computeSafeToSpend({ balance, dueOutflows, goalSetAside, buffer: ws.buffer, days: daysBetween(today, horizon) });
   const flow = await cycleFlow(workspaceId, homeCurrency, cycleStart, today);
-  const monthly = { cycleStart, fromPayday: lastPay !== null, ...flow, ...computeMonthlySafe({ ...flow, dueOutflows, goalSetAside, accountSafe: calc.safe, days: calc.days }) };
+  const monthly = { cycleStart, fromPayday: lastPay !== null, ...flow, goalSetAside: holds.fromCycle, ...computeMonthlySafe({ ...flow, dueOutflows, goalSetAside: holds.fromCycle, accountSafe: calc.safe, days: calc.days }) };
   return { balance, dueOutflows, due, goalSetAside, buffer: ws.buffer, nextIncome, horizon, incomeKnown: nextIncome !== null, monthly, ...calc };
 }
 
@@ -171,7 +182,14 @@ export async function forecast(workspaceId: string, homeCurrency: string, count 
   const [firstTx] = await db.select({ d: sql<string | null>`min(${transactions.occurredOn})` }).from(transactions).where(eq(transactions.workspaceId, workspaceId));
   const monthsOfHistory = firstTx?.d ? Math.min(3, Math.max(1, Math.round(daysBetween(firstTx.d > `${histFrom}-01` ? firstTx.d : `${histFrom}-01`, prevEnd) / 30))) : 1;
   const budgetedIds = new Set(status.map((b) => b.categoryId));
-  const unbudgetedAvg = Math.round(hist.filter((h) => !h.categoryId || !budgetedIds.has(h.categoryId)).reduce((s, h) => s + h.total, 0) / monthsOfHistory);
+  const average = new Map<string | null, number>(hist.filter((h) => !h.categoryId || !budgetedIds.has(h.categoryId)).map((h) => [h.categoryId, h.total / monthsOfHistory]));
+  // Bills by category for each full month ahead.
+  const billsByMonth = yms.slice(1).map((ym) => {
+    const m = new Map<string | null, number>();
+    for (const e of expectedAll) if (e.kind === "expense" && e.dueOn.slice(0, 7) === ym) m.set(e.categoryId, (m.get(e.categoryId) ?? 0) + e.amountMinor);
+    return m;
+  });
+  const unbudgetedAvg = beyondBills(average, billsByMonth);
 
   const dim = new Date(Date.UTC(+thisYM.slice(0, 4), +thisYM.slice(5, 7), 0)).getUTCDate();
   const months: ForecastMonth[] = yms.map((ym, i) => {

@@ -9,7 +9,7 @@ const FEATURES = [
   { Icon: Zap, title: "Add it in a line", text: "Type “chai 20 cash” or “swiggy 450 upi yesterday”. Amounts, accounts and days are read for you, and it works offline." },
   { Icon: FileUp, title: "Import your statements", text: "Drop in a CSV or PDF from your bank. Lines you already added are matched, repeats are skipped, and it learns your categories." },
   { Icon: CalendarClock, title: "EMIs and bills that change", text: "Track EMIs with rate or amount changes, SIPs, rent and a salary that lands on the last day, moving back when it falls on a Sunday." },
-  { Icon: ShieldCheck, title: "Safe to spend", text: "See what is truly free until your next payday after bills, goals and a buffer you choose, plus a six-month forecast." },
+  { Icon: ShieldCheck, title: "Free to spend", text: "See what is truly free until your next payday after bills, money set aside and an amount you keep back, plus a six-month forecast." },
   { Icon: Gift, title: "A wishlist that knows when", text: "Save what you want with links and EMI options. It works out what you can afford now and what to wait for." },
   { Icon: Bot, title: "Your own AI and agent", text: "Optional. Bring your own Gemini key, or connect any MCP agent with a token you can revoke. Both are off until you turn them on." },
 ];
@@ -17,7 +17,7 @@ const FEATURES = [
 const STEPS = [
   ["Capture", "A line, a statement or an agent. Whatever is least effort that day."],
   ["Plan", "Budgets, goals, recurring items and EMIs build the picture of the next months."],
-  ["Decide", "Safe to spend today, and a clear answer on what you can buy and when."],
+  ["Decide", "What is free to spend today, and a clear answer on what you can buy and when."],
 ];
 
 export default function Landing() {
@@ -47,7 +47,7 @@ export default function Landing() {
 
           <figure className="hero__card well well--cloth" aria-label="Sample of the safe-to-spend view">
             <figcaption className="label">Sample data</figcaption>
-            <p className="label">Safe to spend until payday</p>
+            <p className="label">Free to spend until payday</p>
             <p className="figure figure--hero">₹18,400</p>
             <p className="label">About ₹2,300 a day for 8 days</p>
             <ul className="hero__rows">

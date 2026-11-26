@@ -7,14 +7,14 @@ import { hasKey } from "@/server/ai/gateway";
 import { listAccounts, listCategories } from "@/server/services/ledger";
 import { listPending } from "@/server/services/capture";
 
-export const metadata = { title: "Inbox" };
+export const metadata = { title: "To sort" };
 
 async function InboxLoader() {
   const { user, workspace } = await requireWorkspace();
   const [rows, categories, accounts, key] = await Promise.all([listPending(workspace.id), listCategories(workspace.id), listAccounts(workspace.id), hasKey(user.id)]);
   return (
     <div className="settle stack">
-      <h1>Inbox</h1>
+      <h1>To sort</h1>
       {rows.length === 0 ? (
         <section className="well empty">
           <h3>All caught up</h3>

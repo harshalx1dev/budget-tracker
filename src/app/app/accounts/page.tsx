@@ -4,6 +4,7 @@ import { AddPanel } from "@/components/add-panel";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { requireWorkspace } from "@/server/session";
 import { listAccounts } from "@/server/services/ledger";
+import { listAssets } from "@/server/services/savings";
 import { formatMinor } from "@/lib/money";
 import { isAssetType, TYPE_LABELS } from "@/lib/savings";
 import { CreditCard, Landmark, TrendingUp, Wallet } from "lucide-react";
@@ -14,7 +15,9 @@ export const metadata = { title: "Accounts" };
 
 async function AccountsLoader() {
   const { workspace } = await requireWorkspace();
-  const accounts = await listAccounts(workspace.id);
+  const [accounts, assets] = await Promise.all([listAccounts(workspace.id), listAssets(workspace.id)]);
+  // Savings and investments show what they are worth today, the same figure as on the savings page.
+  const worth = new Map(assets.map((a) => [a.id, a.valueMinor]));
   return (
     <div className="settle stack">
       <h1>Accounts</h1>
@@ -24,7 +27,7 @@ async function AccountsLoader() {
           <thead><tr><th>Name</th><th>Type</th><th className="num">Balance</th></tr></thead>
           <tbody>
             {accounts.map((a) => (
-              <tr key={a.id}><td><span className="what"><span className="what__icon" data-kind="account" aria-hidden>{a.type === "cash" ? <Wallet size={14} /> : a.type === "card" ? <CreditCard size={14} /> : isAssetType(a.type) ? <TrendingUp size={14} /> : <Landmark size={14} />}</span>{a.name}</span></td><td>{TYPE_LABELS[a.type] ?? a.type}</td><td className="num">{formatMinor(a.balanceMinor, a.currency)}</td></tr>
+              <tr key={a.id}><td><span className="what"><span className="what__icon" data-kind="account" aria-hidden>{a.type === "cash" ? <Wallet size={14} /> : a.type === "card" ? <CreditCard size={14} /> : isAssetType(a.type) ? <TrendingUp size={14} /> : <Landmark size={14} />}</span>{a.name}</span></td><td>{TYPE_LABELS[a.type] ?? a.type}</td><td className="num">{formatMinor(worth.get(a.id) ?? a.balanceMinor, a.currency)}</td></tr>
             ))}
           </tbody>
         </table>
@@ -35,7 +38,7 @@ async function AccountsLoader() {
         <TransferForm accounts={accounts} />
       </section>
       <section className="stack-sm" aria-labelledby="rc-h">
-        <h2 id="rc-h">Count your cash</h2>
+        <h2 id="rc-h">Update cash in hand</h2>
         <p className="label">Enter what you actually have. The gap against the books is recorded as untracked cash spending, so you never need to log every small purchase.</p>
         <ReconcileForm accounts={accounts} />
       </section>

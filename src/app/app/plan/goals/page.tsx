@@ -3,6 +3,7 @@ import { Summary } from "@/components/summary";
 import { AddPanel } from "@/components/add-panel";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { ContributionForm, GoalForm, RemoveButton } from "@/components/plan-forms";
+import { GoalFirmness } from "@/components/goal-firmness";
 import { requireWorkspace } from "@/server/session";
 import { listGoals } from "@/server/services/planner";
 import { listAssets } from "@/server/services/savings";
@@ -43,7 +44,7 @@ async function GoalsLoader() {
                     : g.requiredMonthly ? `${formatMinor(g.requiredMonthly, home)} a month for ${g.monthsLeft} month${g.monthsLeft === 1 ? "" : "s"} gets there${g.contributedThisMonth > 0 ? `, ${formatMinor(g.contributedThisMonth, home)} already saved this month` : ""}`
                     : `${formatMinor(g.remaining, home)} to go, no date set`}
                 </p>
-                {g.accountId ? <p className="label">Tracked with a savings account, so progress follows its value.</p> : <ContributionForm goalId={g.id} />}
+                <div className="inline-form"><GoalFirmness id={g.id} fixed={g.fixed} name={g.name} />{g.accountId ? <p className="label">Progress follows its savings account.</p> : <ContributionForm goalId={g.id} />}</div>
               </li>
             );
           })}

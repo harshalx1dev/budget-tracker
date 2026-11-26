@@ -32,7 +32,7 @@ export function ReconcileForm({ accounts }: { accounts: Acct[] }) {
     <form ref={ref} action={action} className="well tx-form" aria-busy={pending}>
       <label className="field"><span className="label">Account</span><select name="account" className="input">{cash.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
       <label className="field"><span className="label">How much do you actually have</span><input name="actual" inputMode="decimal" required className="input" /></label>
-      <div className="tx-form__end"><Status s={s} /><button className="btn btn--secondary" disabled={pending || !cash.length}>Reconcile</button></div>
+      <div className="tx-form__end"><Status s={s} /><button className="btn btn--secondary" disabled={pending || !cash.length}>Update cash</button></div>
     </form>
   );
 }

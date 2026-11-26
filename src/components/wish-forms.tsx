@@ -24,7 +24,7 @@ export function WishForm({ categories }: { categories: Cat[] }) {
       <label className="field"><span className="label">What</span><input name="title" required maxLength={80} placeholder="55 inch tv" className="input" /></label>
       <label className="field"><span className="label">Price</span><input name="price" inputMode="decimal" required className="input" /></label>
       <label className="field"><span className="label">Kind</span>
-        <select name="type" className="input" defaultValue="want"><option value="need">Need</option><option value="want">Want</option><option value="desire">Desire</option></select>
+        <select name="type" className="input" defaultValue="want"><option value="need">Must have</option><option value="want">Nice to have</option><option value="desire">Someday</option></select>
       </label>
       <label className="field"><span className="label">Priority</span>
         <select name="priority" className="input" defaultValue="2"><option value="1">High</option><option value="2">Medium</option><option value="3">Low</option></select>
@@ -62,6 +62,11 @@ export function LinkForm({ itemId }: { itemId: string }) {
       <Msg s={s} />
     </form>
   );
+}
+
+export function BoughtButton({ id }: { id: string }) {
+  const [pending, start] = useTransition();
+  return <button type="button" className="btn btn--secondary" disabled={pending} onClick={() => start(() => setStatusAction(id, "bought"))}>Mark bought</button>;
 }
 
 export function StatusSelect({ id, status }: { id: string; status: Status }) {
