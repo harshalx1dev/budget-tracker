@@ -79,7 +79,7 @@ export const accountType = pgEnum("account_type", ["cash", "bank", "card", "wall
 export const txKind = pgEnum("tx_kind", ["income", "expense"]);
 // pending = imported or quick-added without a trusted category; shows in the review inbox.
 export const txStatus = pgEnum("tx_status", ["pending", "confirmed"]);
-export const txSource = pgEnum("tx_source", ["manual", "quick", "import", "reconcile"]);
+export const txSource = pgEnum("tx_source", ["manual", "quick", "import", "reconcile", "mcp"]);
 
 export const accounts = pgTable("accounts", {
   id: id(),
@@ -323,3 +323,25 @@ export const aiSummaries = pgTable("ai_summaries", {
   body: text("body").notNull(),
   createdAt: createdAt(),
 }, (t) => [uniqueIndex("ai_summaries_uq").on(t.workspaceId, t.kind, t.key)]);
+
+/* MCP: personal access tokens (only the SHA-256 hash is stored) and a call log for rate limiting and audit */
+export const mcpTokens = pgTable("mcp_tokens", {
+  id: id(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  prefix: text("prefix").notNull(),
+  tokenHash: text("token_hash").notNull().unique(),
+  scopes: text("scopes").array().notNull().default(["read"]),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  createdAt: createdAt(),
+}, (t) => [index("mcp_tokens_user_idx").on(t.userId)]);
+
+export const mcpCalls = pgTable("mcp_calls", {
+  id: id(),
+  tokenId: text("token_id").notNull().references(() => mcpTokens.id, { onDelete: "cascade" }),
+  tool: text("tool").notNull(),
+  ok: boolean("ok").notNull(),
+  createdAt: createdAt(),
+}, (t) => [index("mcp_calls_token_time_idx").on(t.tokenId, t.createdAt)]);

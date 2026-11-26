@@ -48,21 +48,34 @@ export async function setMaxEmiRatio(workspaceId: string, pct: number) {
 const HORIZON = 24;
 
 /** What can be bought and when, from the forecast and your rules. Plain arithmetic: no AI involved. */
-export async function affordability(workspaceId: string, homeCurrency: string) {
-  const [items, fc, [ws]] = await Promise.all([
-    listWishlist(workspaceId),
+async function loadState(workspaceId: string, homeCurrency: string) {
+  const [fc, [ws]] = await Promise.all([
     forecast(workspaceId, homeCurrency, HORIZON),
     db.select({ buffer: workspaces.bufferMinor, ratio: workspaces.maxEmiRatioPct }).from(workspaces).where(eq(workspaces.id, workspaceId)),
   ]);
   const state: State = {
-    startBalance: fc.startBalance,
-    ends: fc.rows.map((r) => r.end),
-    emiLoad: fc.emiByMonth,
-    incomes: fc.rows.map((r) => r.income),
-    upfront: fc.rows.map(() => 0),
-    buffer: ws.buffer,
-    maxRatioPct: ws.ratio,
+    startBalance: fc.startBalance, ends: fc.rows.map((r) => r.end), emiLoad: fc.emiByMonth, incomes: fc.rows.map((r) => r.income),
+    upfront: fc.rows.map(() => 0), buffer: ws.buffer, maxRatioPct: ws.ratio,
   };
+  return { fc, state, ws };
+}
+
+/** Judge one hypothetical purchase against the current plan, without saving anything. */
+export async function checkWish(workspaceId: string, homeCurrency: string, w: Wish) {
+  const { fc, state } = await loadState(workspaceId, homeCurrency);
+  const o = outrightPlan(w, state), e = emiPlan(w, state);
+  return {
+    outrightFrom: o ? fc.rows[o.index].month : null,
+    emi: e ? { from: fc.rows[e.index].month, emiMinor: e.emiMinor, tenure: e.tenure, downMinor: e.downMinor, interestMinor: e.totalInterestMinor, ratioUnknown: e.ratioUnknown } : null,
+    horizonEnd: fc.rows.at(-1)!.month,
+    buffer: state.buffer,
+    maxEmiRatioPct: state.maxRatioPct,
+    incomeKnown: fc.incomeKnown,
+  };
+}
+
+export async function affordability(workspaceId: string, homeCurrency: string) {
+  const [items, { fc, state, ws }] = await Promise.all([listWishlist(workspaceId), loadState(workspaceId, homeCurrency)]);
   const active = items.filter((i) => i.status === "wanted" || i.status === "planned");
   const wishes: Wish[] = active.map((i) => ({
     id: i.id, title: i.title, priceMinor: i.priceMinor, type: i.type, priority: i.priority,

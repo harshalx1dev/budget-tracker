@@ -1,4 +1,5 @@
 import "server-only";
+import { eq } from "drizzle-orm";
 import { db, schema } from "@/server/db";
 
 const EXPENSE = ["Food & dining", "Groceries", "Transport", "Rent", "Bills & utilities", "EMI", "Shopping", "Health", "Entertainment", "Travel", "Investments", "Other"];
@@ -15,4 +16,22 @@ export async function createPersonalWorkspace(userId: string, name: string) {
       ...INCOME.map((n) => ({ workspaceId: ws.id, name: n, kind: "income" as const })),
     ]);
   });
+}
+
+export type WorkspaceRef = { id: string; name: string; homeCurrency: string };
+
+/** The workspace a user belongs to, created on the spot if sign-up's hook failed. Shared by pages and the MCP endpoint. */
+export async function workspaceForUser(userId: string, displayName: string): Promise<WorkspaceRef> {
+  const find = () =>
+    db.select({ id: schema.workspaces.id, name: schema.workspaces.name, homeCurrency: schema.workspaces.homeCurrency })
+      .from(schema.workspaceMembers)
+      .innerJoin(schema.workspaces, eq(schema.workspaces.id, schema.workspaceMembers.workspaceId))
+      .where(eq(schema.workspaceMembers.userId, userId))
+      .limit(1);
+  let [row] = await find();
+  if (!row) {
+    await createPersonalWorkspace(userId, displayName.split(" ")[0] || "My");
+    [row] = await find();
+  }
+  return row;
 }
