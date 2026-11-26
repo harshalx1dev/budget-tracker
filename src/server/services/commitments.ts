@@ -5,6 +5,8 @@ import { buildSchedule, pmt, type RevisionIn } from "@/lib/schedule";
 import { occurrences } from "@/lib/recurrence";
 import { matchExpected, type Candidate, type Expected } from "@/lib/match-expected";
 import { shiftDays, todayISO } from "@/lib/dates";
+import { isAssetType } from "@/lib/savings";
+import { convertToTransfer } from "@/server/services/transfers";
 
 const { accounts, categories, expectedMatches, loanRevisions, loans, recurringRules, transactions } = schema;
 
@@ -19,6 +21,8 @@ export type ExpectedItem = {
   accountId: string | null;
   categoryId: string | null;
   pattern: string | null;
+  /** Set for SIPs and recurring deposits: the payment moves money into this account rather than spending it. */
+  transferToAccountId: string | null;
 };
 export type ExpectedRow = ExpectedItem & { status: "paid" | "overdue" | "upcoming"; actualMinor: number | null; transactionId: string | null };
 
@@ -94,12 +98,18 @@ export type NewRule = {
   name: string; kind: "income" | "expense"; amountMinor: number; frequency: "weekly" | "monthly" | "yearly"; intervalCount: number;
   startOn: string; endOn: string | null; maxCount: number | null; matchPattern: string | null; accountId: string | null; categoryId: string | null;
   anchor: "start_day" | "month_end"; weekendShift: "none" | "sunday_back" | "weekend_back";
+  transferToAccountId?: string | null;
 };
 
 export async function createRule(workspaceId: string, r: NewRule) {
   await owns(accounts, workspaceId, r.accountId);
   await owns(categories, workspaceId, r.categoryId);
-  await db.insert(recurringRules).values({ workspaceId, ...r });
+  if (r.transferToAccountId) {
+    const [dest] = await db.select({ type: accounts.type }).from(accounts).where(and(eq(accounts.id, r.transferToAccountId), eq(accounts.workspaceId, workspaceId)));
+    if (!dest || !isAssetType(dest.type)) throw new Error("Pick a savings or investment account to move the money into");
+    if (r.kind !== "expense") throw new Error("Only money going out can be saved into an account");
+  }
+  await db.insert(recurringRules).values({ workspaceId, ...r, transferToAccountId: r.transferToAccountId ?? null });
   await autoMatch(workspaceId);
 }
 
@@ -122,12 +132,12 @@ export async function expectedBetween(workspaceId: string, from: string, to: str
     const { rows } = loanSchedule(l, revs.filter((r) => r.loanId === l.id));
     for (const r of rows) {
       if (r.dueOn < from || r.dueOn > to) continue;
-      out.push({ key: keyOf("loan", l.id, r.dueOn), sourceKind: "loan", sourceId: l.id, name: l.name, kind: "expense", dueOn: r.dueOn, amountMinor: r.amountMinor, accountId: l.accountId, categoryId: l.categoryId, pattern: l.matchPattern });
+      out.push({ key: keyOf("loan", l.id, r.dueOn), sourceKind: "loan", sourceId: l.id, name: l.name, kind: "expense", dueOn: r.dueOn, amountMinor: r.amountMinor, accountId: l.accountId, categoryId: l.categoryId, pattern: l.matchPattern, transferToAccountId: null });
     }
   }
   for (const r of rs) {
     for (const dueOn of occurrences({ frequency: r.frequency, intervalCount: r.intervalCount, startOn: r.startOn, endOn: r.endOn, maxCount: r.maxCount, anchor: r.anchor, weekendShift: r.weekendShift }, from, to)) {
-      out.push({ key: keyOf("rule", r.id, dueOn), sourceKind: "rule", sourceId: r.id, name: r.name, kind: r.kind, dueOn, amountMinor: r.amountMinor, accountId: r.accountId, categoryId: r.categoryId, pattern: r.matchPattern });
+      out.push({ key: keyOf("rule", r.id, dueOn), sourceKind: "rule", sourceId: r.id, name: r.name, kind: r.kind, dueOn, amountMinor: r.amountMinor, accountId: r.accountId, categoryId: r.categoryId, pattern: r.matchPattern, transferToAccountId: r.transferToAccountId });
     }
   }
   return out.sort((a, b) => a.dueOn.localeCompare(b.dueOn) || a.name.localeCompare(b.name));
@@ -177,11 +187,18 @@ export async function autoMatch(workspaceId: string) {
     return { workspaceId, sourceKind: e.sourceKind, sourceId: e.sourceId, dueOn: e.dueOn, transactionId };
   })).onConflictDoNothing();
 
+  // A SIP is money saved, not spent: pair the matched debit with a credit in the savings account so reports and budgets skip it.
+  for (const [key, id] of pairs) {
+    const e = byKey.get(key)!;
+    if (!e.transferToAccountId) continue;
+    try { await convertToTransfer(workspaceId, id, e.transferToAccountId); } catch (err) { console.error("could not link savings transfer", err); }
+  }
+
   // A paid commitment is not a mystery: give uncategorised rows its category and take them out of the inbox.
   const byCategory = new Map<string, string[]>();
   for (const [key, id] of pairs) {
     const e = byKey.get(key)!;
-    if (e.categoryId) byCategory.set(e.categoryId, [...(byCategory.get(e.categoryId) ?? []), id]);
+    if (e.categoryId && !e.transferToAccountId) byCategory.set(e.categoryId, [...(byCategory.get(e.categoryId) ?? []), id]);
   }
   for (const [categoryId, ids] of byCategory) {
     await db.update(transactions).set({ categoryId, status: "confirmed" })
@@ -200,11 +217,15 @@ export async function markPaid(workspaceId: string, sourceKind: "loan" | "rule",
   if (!acct) throw new Error("Add an account first");
   const [ws] = await db.select({ home: schema.workspaces.homeCurrency }).from(schema.workspaces).where(eq(schema.workspaces.id, workspaceId));
   if (acct.currency !== ws.home) throw new Error("Pick a home-currency account for this commitment");
+  const transferId = item.transferToAccountId ? crypto.randomUUID() : null;
   await db.transaction(async (tx) => {
     const [t] = await tx.insert(transactions).values({
-      workspaceId, accountId: acct.id, categoryId: item.categoryId, kind: item.kind, amountMinor: item.amountMinor, currency: acct.currency,
-      payee: item.name, occurredOn: item.dueOn, source: "manual", status: "confirmed",
+      workspaceId, accountId: acct.id, categoryId: transferId ? null : item.categoryId, kind: item.kind, amountMinor: item.amountMinor, currency: acct.currency,
+      payee: item.name, occurredOn: item.dueOn, source: "manual", status: "confirmed", transferId,
     }).returning({ id: transactions.id });
+    if (transferId && item.transferToAccountId) {
+      await tx.insert(transactions).values({ workspaceId, accountId: item.transferToAccountId, kind: "income", amountMinor: item.amountMinor, currency: acct.currency, payee: item.name, occurredOn: item.dueOn, source: "manual", status: "confirmed", transferId });
+    }
     await tx.insert(expectedMatches).values({ workspaceId, sourceKind, sourceId, dueOn, transactionId: t.id });
   });
 }

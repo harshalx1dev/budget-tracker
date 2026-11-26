@@ -14,7 +14,7 @@ export function AccountForm({ homeCurrency }: { homeCurrency: string }) {
       <label className="field"><span className="label">Name</span><input name="name" required maxLength={40} placeholder="Hdfc savings" className="input" /></label>
       <label className="field"><span className="label">Type</span>
         <select name="type" className="input" defaultValue="bank">
-          <option value="bank">Bank</option><option value="cash">Cash</option><option value="card">Card</option><option value="wallet">Wallet / upi</option>
+          <option value="bank">Bank</option><option value="cash">Cash</option><option value="card">Card</option><option value="wallet">Wallet or UPI</option><option value="savings">Savings account (not for daily spending)</option>
         </select>
       </label>
       <label className="field"><span className="label">Currency</span>

@@ -51,7 +51,7 @@ export async function removeTransaction(id: string) {
 
 const accountSchema = z.object({
   name: z.string().trim().min(1).max(40),
-  type: z.enum(["cash", "bank", "card", "wallet"]),
+  type: z.enum(["cash", "bank", "card", "wallet", "savings", "fd", "mutual_fund", "stocks", "retirement", "gold", "other_asset"]),
   currency: z.enum(CURRENCIES),
   opening: z.string().trim(),
   aliases: z.string().trim().max(80).transform((s) => s.toLowerCase().split(/[\s,]+/).filter(Boolean)),

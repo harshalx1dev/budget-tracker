@@ -15,7 +15,7 @@ async function main() {
     .innerJoin(schema.user, eq(schema.user.id, schema.workspaceMembers.userId)).where(eq(schema.user.email, TEST_EMAIL));
   if (!m) { console.error(`no ${TEST_EMAIL} account; sign up that test user first. Refusing to run.`); process.exit(1); }
   const ws = m.workspaceId;
-  for (const t of [schema.transactions, schema.importBatches, schema.loans, schema.recurringRules, schema.budgets, schema.goals]) await db.delete(t).where(eq(t.workspaceId, ws));
+  for (const t of [schema.transactions, schema.importBatches, schema.loans, schema.recurringRules, schema.budgets, schema.goals, schema.fixedDeposits]) await db.delete(t).where(eq(t.workspaceId, ws));
 
   const today = todayISO();
   const accts = await db.select().from(schema.accounts).where(eq(schema.accounts.workspaceId, ws));

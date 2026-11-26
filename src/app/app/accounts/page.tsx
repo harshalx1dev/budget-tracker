@@ -3,6 +3,7 @@ import { PageSkeleton } from "@/components/page-skeleton";
 import { requireWorkspace } from "@/server/session";
 import { listAccounts } from "@/server/services/ledger";
 import { formatMinor } from "@/lib/money";
+import { TYPE_LABELS } from "@/lib/savings";
 import { TransferForm, ReconcileForm } from "@/components/money-moves";
 import { AccountForm } from "@/components/account-form";
 
@@ -20,7 +21,7 @@ async function AccountsLoader() {
           <thead><tr><th>Name</th><th>Type</th><th className="num">Balance</th></tr></thead>
           <tbody>
             {accounts.map((a) => (
-              <tr key={a.id}><td>{a.name}</td><td className="cap">{a.type}</td><td className="num">{formatMinor(a.balanceMinor, a.currency)}</td></tr>
+              <tr key={a.id}><td>{a.name}</td><td>{TYPE_LABELS[a.type] ?? a.type}</td><td className="num">{formatMinor(a.balanceMinor, a.currency)}</td></tr>
             ))}
           </tbody>
         </table>

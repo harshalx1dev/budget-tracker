@@ -28,7 +28,7 @@ export function BudgetForm({ categories }: { categories: Cat[] }) {
   );
 }
 
-export function GoalForm() {
+export function GoalForm({ savingsAccounts = [] }: { savingsAccounts?: { id: string; name: string }[] }) {
   const [s, action, pending] = useActionState<PlanState, FormData>(addGoalAction, {});
   const ref = useReset(s);
   return (
@@ -36,6 +36,11 @@ export function GoalForm() {
       <label className="field"><span className="label">Goal</span><input name="name" required maxLength={60} placeholder="Emergency fund" className="input" /></label>
       <label className="field"><span className="label">Target amount</span><input name="target" inputMode="decimal" required className="input" /></label>
       <label className="field"><span className="label">By (optional)</span><input name="targetDate" type="date" className="input" /></label>
+      {savingsAccounts.length > 0 && (
+        <label className="field"><span className="label">Track with an account (optional)</span>
+          <select name="accountId" className="input" defaultValue=""><option value="">Count what I add by hand</option>{savingsAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+        </label>
+      )}
       <div className="tx-form__end"><Status s={s} /><button className="btn btn--primary" disabled={pending}>Add goal</button></div>
     </form>
   );

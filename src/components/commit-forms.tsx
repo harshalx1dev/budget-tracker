@@ -66,7 +66,7 @@ export function RevisionForm({ loanId, hasBalance }: { loanId: string; hasBalanc
   );
 }
 
-export function RecurringForm({ accounts, categories }: { accounts: Acct[]; categories: Cat[] }) {
+export function RecurringForm({ accounts, categories, savingsAccounts = [] }: { accounts: Acct[]; categories: Cat[]; savingsAccounts?: Acct[] }) {
   const [s, action, pending] = useActionState<CommitState, FormData>(addRecurringAction, {});
   const ref = useResetOnSuccess(s);
   return (
@@ -92,6 +92,11 @@ export function RecurringForm({ accounts, categories }: { accounts: Acct[]; cate
       <label className="field"><span className="label">Category</span>
         <select name="categoryId" className="input" defaultValue=""><option value="">None</option>{categories.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.kind})</option>)}</select>
       </label>
+      {savingsAccounts.length > 0 && (
+        <label className="field"><span className="label">Saved into (for SIPs and deposits)</span>
+          <select name="intoAccountId" className="input" defaultValue=""><option value="">Spent, not saved</option>{savingsAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+        </label>
+      )}
       <div className="tx-form__end"><Status s={s} /><button className="btn btn--primary" disabled={pending}>Add recurring item</button></div>
     </form>
   );

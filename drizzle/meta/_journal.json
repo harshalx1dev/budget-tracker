@@ -64,6 +64,13 @@
       "when": 1795706698143,
       "tag": "0008_perfect_serpent_society",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795715156499,
+      "tag": "0009_quick_tomas",
+      "breakpoints": true
     }
   ]
 }

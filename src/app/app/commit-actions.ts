@@ -88,7 +88,7 @@ export async function addRecurringAction(_: CommitState, fd: FormData): Promise<
   if (count !== null && (!Number.isInteger(count) || count < 1)) return { error: "Number of times must be a whole number" };
   if (endOn && endOn < p.data.startOn) return { error: "End date is before the start" };
   try {
-    await createRule(workspace.id, { ...p.data, amountMinor, intervalCount: every, endOn, maxCount: count, matchPattern: blank(fd.get("pattern")), accountId: blank(fd.get("accountId")), categoryId: blank(fd.get("categoryId")) });
+    await createRule(workspace.id, { ...p.data, amountMinor, intervalCount: every, endOn, maxCount: count, matchPattern: blank(fd.get("pattern")), accountId: blank(fd.get("accountId")), categoryId: blank(fd.get("categoryId")), transferToAccountId: blank(fd.get("intoAccountId")) });
     refresh();
     return { message: "Recurring item added" };
   } catch (e) { return fail(e); }

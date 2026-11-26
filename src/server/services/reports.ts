@@ -3,8 +3,9 @@ import { and, eq, gte, isNull, lt, sql } from "drizzle-orm";
 import { db, schema } from "@/server/db";
 import { addMonths } from "@/lib/dates";
 import { nextMonth } from "@/lib/planner";
+import { ASSET_TYPES } from "@/lib/savings";
 
-const { categories, transactions } = schema;
+const { accounts, categories, transactions } = schema;
 
 /** Home-currency amounts only; foreign-currency rows use their stored rate. Transfers never count. */
 const homeAmount = (home: string) => sql<number>`sum(case when ${transactions.currency} = ${home} then ${transactions.amountMinor} else round(${transactions.amountMinor} * coalesce(${transactions.fxRateToHome}, 0)) end)`.mapWith(Number);
@@ -15,9 +16,14 @@ export async function monthlyTotals(workspaceId: string, home: string, endMonth:
   const rows = await db.select({ month, kind: transactions.kind, total: homeAmount(home) }).from(transactions)
     .where(and(eq(transactions.workspaceId, workspaceId), isNull(transactions.transferId), gte(transactions.occurredOn, `${first}-01`), lt(transactions.occurredOn, `${nextMonth(endMonth)}-01`)))
     .groupBy(month, transactions.kind);
-  const out: { month: string; income: number; expense: number }[] = [];
+  // Money moved into savings and investments (transfers into those accounts, less what came back out).
+  const saved = await db.select({ month, total: sql<number>`sum(case when ${transactions.kind} = 'income' then ${transactions.amountMinor} else -${transactions.amountMinor} end)`.mapWith(Number) })
+    .from(transactions).innerJoin(accounts, eq(accounts.id, transactions.accountId))
+    .where(and(eq(transactions.workspaceId, workspaceId), sql`${transactions.transferId} is not null`, sql`${accounts.type} in (${sql.join(ASSET_TYPES.map((t) => sql`${t}`), sql`, `)})`, gte(transactions.occurredOn, `${first}-01`), lt(transactions.occurredOn, `${nextMonth(endMonth)}-01`)))
+    .groupBy(month);
+  const out: { month: string; income: number; expense: number; saved: number }[] = [];
   for (let m = first, i = 0; i < count; m = nextMonth(m), i++) {
-    out.push({ month: m, income: rows.find((r) => r.month === m && r.kind === "income")?.total ?? 0, expense: rows.find((r) => r.month === m && r.kind === "expense")?.total ?? 0 });
+    out.push({ month: m, income: rows.find((r) => r.month === m && r.kind === "income")?.total ?? 0, expense: rows.find((r) => r.month === m && r.kind === "expense")?.total ?? 0, saved: saved.find((r) => r.month === m)?.total ?? 0 });
   }
   return out;
 }

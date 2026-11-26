@@ -8,6 +8,7 @@ import { NoAmountError, pendingCount, quickAdd } from "@/server/services/capture
 import { autoMatch, listExpected } from "@/server/services/commitments";
 import { budgetStatus, forecast, safeToSpend } from "@/server/services/planner";
 import { addWish, affordability, checkWish } from "@/server/services/wishlist";
+import { emergencyFund, listAssets, listDeposits, netWorthNow } from "@/server/services/savings";
 import { exponent } from "@/lib/money";
 import { makeISO, shiftDays, thisMonth, todayISO } from "@/lib/dates";
 import { tool, ToolError } from "./tool";
@@ -116,6 +117,26 @@ export function createBudgetServer(auth: McpAuth) {
     return {
       canPayInFullFrom: r.outrightFrom, planHorizonEnds: r.horizonEnd, buffer: toMajor(r.buffer, home), maxEmiShareOfIncomePercent: r.maxEmiRatioPct, incomePlanned: r.incomeKnown,
       emi: r.emi ? { from: r.emi.from, monthlyEmi: toMajor(r.emi.emiMinor, home), months: r.emi.tenure, downPayment: toMajor(r.emi.downMinor, home), totalInterest: toMajor(r.emi.interestMinor, home), emiShareOfIncomeUnchecked: r.emi.ratioUnknown } : a.emiMonths ? "not possible on these terms within the plan" : null,
+    };
+  });
+
+  tool(server, auth, { name: "get_net_worth", title: "Net worth and emergency fund", scope: "read", input: {},
+    description: "Net worth (accounts plus savings and investments, minus loans still owed) and how many months of essential spending the emergency fund covers." },
+  async () => {
+    const [nw, ef] = await Promise.all([netWorthNow(ws.id, home), emergencyFund(ws.id)]);
+    return {
+      netWorth: toMajor(nw.netWorthMinor, home), inAccounts: toMajor(nw.liquidMinor, home), savingsAndInvestments: toMajor(nw.assetsMinor, home), loansOwed: toMajor(nw.liabilitiesMinor, home), loansWithoutBalanceNotCounted: nw.loansWithoutBalance,
+      emergencyFund: { monthsCovered: ef.coveredMonths, targetMonths: ef.months, target: toMajor(ef.targetMinor, home), shortfall: toMajor(ef.shortfallMinor, home), essentialSpendingPerMonth: toMajor(ef.essentialMonthlyMinor, home) },
+    };
+  });
+
+  tool(server, auth, { name: "list_savings", title: "Savings, investments and fixed deposits", scope: "read", input: {},
+    description: "Each savings or investment account with what was invested and what it is worth, and fixed deposits with their maturity dates." },
+  async () => {
+    const [assets, deposits] = await Promise.all([listAssets(ws.id), listDeposits(ws.id)]);
+    return {
+      accounts: assets.map((a) => ({ name: clip(a.name, 80), type: a.type, invested: toMajor(a.investedMinor, a.currency), value: toMajor(a.valueMinor, a.currency), gain: toMajor(a.gainMinor, a.currency), valueAsOf: a.valuedOn })),
+      fixedDeposits: deposits.map((d) => ({ name: clip(d.name, 80), deposited: toMajor(d.principalMinor, home), ratePercent: Number(d.annualRatePct), worthNow: toMajor(d.valueNowMinor, home), maturesOn: d.maturityOn, paysOut: toMajor(d.maturityMinor, home), matured: d.matured })),
     };
   });
 

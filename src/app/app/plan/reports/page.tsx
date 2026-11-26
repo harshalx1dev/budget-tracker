@@ -6,6 +6,7 @@ import { requireWorkspace } from "@/server/session";
 import { monthlyTotals, spendingByCategory, topPayees } from "@/server/services/reports";
 import { formatMinor } from "@/lib/money";
 import { thisMonth } from "@/lib/dates";
+import { savingsRate } from "@/lib/savings";
 import { nextMonth } from "@/lib/planner";
 import { addMonths } from "@/lib/dates";
 
@@ -39,10 +40,10 @@ async function ReportsLoader({ searchParams }: { searchParams: Promise<{ m?: str
         <div className="well" style={{ padding: "var(--space-lg)" }}><MonthlyChart rows={totals} currency={home} /></div>
         <div className="well table-wrap">
           <table className="ledger">
-            <thead><tr><th>Month</th><th className="num">Income</th><th className="num">Spending</th><th className="num">Kept</th></tr></thead>
+            <thead><tr><th>Month</th><th className="num">Income</th><th className="num">Spending</th><th className="num">Kept</th><th className="num">Saved</th><th className="num">Savings rate</th></tr></thead>
             <tbody>
               {totals.map((r) => (
-                <tr key={r.month}><td>{label(r.month)}</td><td className="num amt" data-kind="income">{formatMinor(r.income, home)}</td><td className="num">{formatMinor(r.expense, home)}</td><td className="num">{formatMinor(r.income - r.expense, home)}</td></tr>
+                <tr key={r.month}><td>{label(r.month)}</td><td className="num amt" data-kind="income">{formatMinor(r.income, home)}</td><td className="num">{formatMinor(r.expense, home)}</td><td className="num">{formatMinor(r.income - r.expense, home)}</td><td className="num">{formatMinor(r.saved, home)}</td><td className="num">{savingsRate(r.saved, r.income) ?? "—"}{savingsRate(r.saved, r.income) === null ? "" : "%"}</td></tr>
               ))}
             </tbody>
           </table>

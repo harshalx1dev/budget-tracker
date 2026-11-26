@@ -1,7 +1,7 @@
 # budget tracker
 
 A budget tracker and planner: quick-add and statement import (CSV or PDF), EMIs and recurring items, budgets, goals,
-a forecast with safe-to-spend, a wishlist that works out what you can afford and when, optional AI (bring your own
+a forecast with safe-to-spend, a wishlist that works out what you can afford and when, savings and investments (SIPs as transfers, fixed deposits, an emergency fund, net worth), optional AI (bring your own
 Gemini key), an MCP server for your own agent, offline quick-add and bill reminders. Built with Next.js 16, Drizzle,
 Neon Postgres and Better Auth. The plan it was built from is in [PLAN.md](PLAN.md).
 
@@ -42,6 +42,7 @@ npm run check:planner
 npm run check:wishlist
 npm run check:ai          # uses a fake generator, no Gemini key needed
 npm run check:polish
+npm run check:savings
 npm run check:mcp         # needs a running server: npm run build; npm run start
 npm run check:admin       # start the server with ADMIN_EMAILS=hook-admin@budget.test first
 ```

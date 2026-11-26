@@ -3,6 +3,7 @@ import { PageSkeleton } from "@/components/page-skeleton";
 import { ContributionForm, GoalForm, RemoveButton } from "@/components/plan-forms";
 import { requireWorkspace } from "@/server/session";
 import { listGoals } from "@/server/services/planner";
+import { listAssets } from "@/server/services/savings";
 import { formatMinor } from "@/lib/money";
 import { formatDayYear } from "@/lib/dates";
 
@@ -11,12 +12,12 @@ export const metadata = { title: "Goals" };
 async function GoalsLoader() {
   const { workspace } = await requireWorkspace();
   const home = workspace.homeCurrency;
-  const goals = await listGoals(workspace.id);
+  const [goals, assets] = await Promise.all([listGoals(workspace.id), listAssets(workspace.id)]);
   return (
     <div className="settle stack">
       <h1>Goals</h1>
       <p className="lead">Money you are putting away for something. Tell the app how much you set aside; it works out what each month needs.</p>
-      <GoalForm />
+      <GoalForm savingsAccounts={assets.map((a) => ({ id: a.id, name: a.name }))} />
       {goals.length === 0 ? (
         <div className="well empty"><h3>No goals yet</h3><p>Add one above, for example an emergency fund or a trip.</p></div>
       ) : (
@@ -39,7 +40,7 @@ async function GoalsLoader() {
                     : g.requiredMonthly ? `${formatMinor(g.requiredMonthly, home)} a month for ${g.monthsLeft} month${g.monthsLeft === 1 ? "" : "s"} gets there${g.contributedThisMonth > 0 ? `, ${formatMinor(g.contributedThisMonth, home)} already saved this month` : ""}`
                     : `${formatMinor(g.remaining, home)} to go, no date set`}
                 </p>
-                <ContributionForm goalId={g.id} />
+                {g.accountId ? <p className="label">Tracked with a savings account, so progress follows its value.</p> : <ContributionForm goalId={g.id} />}
               </li>
             );
           })}

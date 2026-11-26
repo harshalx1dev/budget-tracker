@@ -6,6 +6,7 @@ import { requireWorkspace } from "@/server/session";
 import { listAccounts, listCategories } from "@/server/services/ledger";
 import { getLoan, listExpected, listLoans, listRecurring, loanSchedule } from "@/server/services/commitments";
 import { formatMinor } from "@/lib/money";
+import { isAssetType } from "@/lib/savings";
 import { formatDay, formatDayYear, shiftDays, todayISO } from "@/lib/dates";
 
 export const metadata = { title: "Commitments" };
@@ -29,7 +30,7 @@ async function CommitmentsLoader() {
     return { l, next: left[0], remaining: left.length, ends: rows.at(-1)?.dueOn, outstanding };
   }));
   const monthly = loanRows.reduce((s, r) => s + (r.next?.amountMinor ?? 0), 0);
-  const accountOpts = accounts.map((a) => ({ id: a.id, name: a.name }));
+  const accountOpts = accounts.filter((a) => !isAssetType(a.type)).map((a) => ({ id: a.id, name: a.name }));
 
   return (
     <div className="settle stack">
@@ -98,7 +99,7 @@ async function CommitmentsLoader() {
               <tbody>
                 {rules.map((r) => (
                   <tr key={r.id}>
-                    <td>{r.name}</td>
+                    <td>{r.name}{r.transferToAccountId ? <span className="label"> Saved</span> : null}</td>
                     <td className="num amt" data-kind={r.kind}>{formatMinor(r.kind === "income" ? r.amountMinor : -r.amountMinor, home, { sign: true })}</td>
                     <td>every {r.intervalCount > 1 ? `${r.intervalCount} ` : ""}{FREQ[r.frequency]}{r.intervalCount > 1 ? "s" : ""} from {formatDay(r.startOn)}</td>
                     <td>{r.endOn ? formatDayYear(r.endOn) : r.maxCount ? `${r.maxCount} times` : "No end"}</td>
@@ -109,7 +110,7 @@ async function CommitmentsLoader() {
             </table>
           </div>
         )}
-        <details className="more"><summary className="pill">Add a recurring item</summary><RecurringForm accounts={accountOpts} categories={categories} /></details>
+        <details className="more"><summary className="pill">Add a recurring item</summary><RecurringForm accounts={accountOpts} categories={categories} savingsAccounts={accounts.filter((a) => isAssetType(a.type)).map((a) => ({ id: a.id, name: a.name }))} /></details>
       </section>
     </div>
   );

@@ -8,6 +8,8 @@ import { hasKey } from "@/server/ai/gateway";
 import { getSummary } from "@/server/services/ai-features";
 import { listAccounts, listCategories, listTransactions, monthSummary } from "@/server/services/ledger";
 import { formatMinor } from "@/lib/money";
+import { isAssetType } from "@/lib/savings";
+import { netWorthNow } from "@/server/services/savings";
 import { thisMonth } from "@/lib/dates";
 import { QuickAddBar } from "@/components/quick-add-bar";
 import { TransactionForm } from "@/components/transaction-form";
@@ -16,7 +18,7 @@ import { LedgerTable } from "@/components/ledger-table";
 async function OverviewLoader() {
   const { user, workspace } = await requireWorkspace();
   const home = workspace.homeCurrency;
-  const [accounts, categories, recent, month, sts, key, summary] = await Promise.all([
+  const [accounts, categories, recent, month, sts, key, summary, nw] = await Promise.all([
     listAccounts(workspace.id),
     listCategories(workspace.id),
     listTransactions(workspace.id, 8),
@@ -24,13 +26,15 @@ async function OverviewLoader() {
     safeToSpend(workspace.id, home),
     hasKey(user.id),
     getSummary(workspace.id, "month", thisMonth()),
+    netWorthNow(workspace.id, home),
   ]);
   // Balances are summed only for accounts in the home currency; others need FX rates (later phase).
-  const balance = accounts.filter((a) => a.currency === home).reduce((s, a) => s + a.balanceMinor, 0);
+  const balance = accounts.filter((a) => a.currency === home && !isAssetType(a.type)).reduce((s, a) => s + a.balanceMinor, 0);
   const hasForeign = accounts.some((a) => a.currency !== home);
   const stats = [
     { label: "Balance", value: formatMinor(balance, home) },
     { label: "Safe to spend", value: formatMinor(sts.safe, home), note: sts.safe > 0 ? `${formatMinor(sts.perDay, home)} a day until ${sts.incomeKnown && sts.nextIncome ? "payday" : "month end"}` : "Nothing spare yet" },
+    { label: "Net worth", value: formatMinor(nw.netWorthMinor, home), note: nw.assetsMinor > 0 ? `${formatMinor(nw.assetsMinor, home)} saved and invested` : "Add savings under Plan" },
     { label: "In this month", value: formatMinor(month.income, home) },
     { label: "Out this month", value: formatMinor(month.expense, home) },
   ];

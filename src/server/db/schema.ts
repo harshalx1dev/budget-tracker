@@ -66,6 +66,9 @@ export const workspaces = pgTable("workspaces", {
   bufferMinor: bigint("buffer_minor", { mode: "number" }).notNull().default(0),
   // Largest share of monthly income that all EMIs together may take when judging a new one.
   maxEmiRatioPct: integer("max_emi_ratio_pct").notNull().default(40),
+  // Emergency fund: how many months of essential spending to hold, and the account that holds it.
+  emergencyMonths: integer("emergency_months").notNull().default(6),
+  emergencyAccountId: text("emergency_account_id"),
   createdAt: createdAt(),
 });
 
@@ -77,7 +80,8 @@ export const workspaceMembers = pgTable("workspace_members", {
 }, (t) => [primaryKey({ columns: [t.workspaceId, t.userId] }), index("workspace_members_user_idx").on(t.userId)]);
 
 /* Ledger */
-export const accountType = pgEnum("account_type", ["cash", "bank", "card", "wallet"]);
+// Spendable accounts first; the rest hold savings and investments and never count toward safe-to-spend.
+export const accountType = pgEnum("account_type", ["cash", "bank", "card", "wallet", "savings", "fd", "mutual_fund", "stocks", "retirement", "gold", "other_asset"]);
 export const txKind = pgEnum("tx_kind", ["income", "expense"]);
 // pending = imported or quick-added without a trusted category; shows in the review inbox.
 export const txStatus = pgEnum("tx_status", ["pending", "confirmed"]);
@@ -101,6 +105,8 @@ export const categories = pgTable("categories", {
   workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   kind: txKind("kind").notNull(),
+  // Essential spending (rent, groceries, EMIs...) sizes the emergency fund.
+  essential: boolean("essential").notNull().default(false),
   createdAt: createdAt(),
 }, (t) => [uniqueIndex("categories_workspace_name_kind_uq").on(t.workspaceId, t.name, t.kind)]);
 
@@ -209,6 +215,8 @@ export const recurringRules = pgTable("recurring_rules", {
   startOn: date("start_on").notNull(),
   endOn: date("end_on"),
   maxCount: integer("max_count"),
+  // SIPs and recurring deposits: the money moves into this savings or investment account instead of being spent.
+  transferToAccountId: text("transfer_to_account_id").references(() => accounts.id, { onDelete: "set null" }),
   anchor: ruleAnchor("anchor").notNull().default("start_day"),
   weekendShift: weekendShift("weekend_shift").notNull().default("none"),
   matchPattern: text("match_pattern"),
@@ -247,6 +255,8 @@ export const goals = pgTable("goals", {
   name: text("name").notNull(),
   targetMinor: money("target_minor").notNull(),
   targetDate: date("target_date"),
+  // When set, progress is that account's value instead of hand-entered contributions.
+  accountId: text("account_id").references(() => accounts.id, { onDelete: "set null" }),
   archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: createdAt(),
 }, (t) => [index("goals_workspace_idx").on(t.workspaceId)]);
@@ -370,3 +380,40 @@ export const pushSent = pgTable("push_sent", {
   day: date("day").notNull(),
   createdAt: createdAt(),
 }, (t) => [uniqueIndex("push_sent_uq").on(t.userId, t.reminderKey, t.day)]);
+
+/* Savings and investments */
+// What an investment is worth on a date, entered by hand. Invested money is what was transferred in.
+export const accountValuations = pgTable("account_valuations", {
+  id: id(),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  accountId: text("account_id").notNull().references(() => accounts.id, { onDelete: "cascade" }),
+  onDate: date("on_date").notNull(),
+  valueMinor: money("value_minor").notNull(),
+  createdAt: createdAt(),
+}, (t) => [uniqueIndex("account_valuations_uq").on(t.accountId, t.onDate)]);
+
+export const fixedDeposits = pgTable("fixed_deposits", {
+  id: id(),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  accountId: text("account_id").references(() => accounts.id, { onDelete: "set null" }), // the FD's own asset account
+  payoutAccountId: text("payout_account_id").references(() => accounts.id, { onDelete: "set null" }), // where it pays out
+  name: text("name").notNull(),
+  principalMinor: money("principal_minor").notNull(),
+  annualRatePct: numeric("annual_rate_pct", { precision: 7, scale: 4 }).notNull(),
+  startOn: date("start_on").notNull(),
+  maturityOn: date("maturity_on").notNull(),
+  maturityMinor: money("maturity_minor").notNull(), // as the bank states it, or estimated with quarterly compounding
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
+  createdAt: createdAt(),
+}, (t) => [index("fixed_deposits_workspace_idx").on(t.workspaceId)]);
+
+// One row per month (the latest values that month), so net worth has a history. Written by actions and a daily job.
+export const netWorthSnapshots = pgTable("net_worth_snapshots", {
+  id: id(),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  month: text("month").notNull(), // YYYY-MM
+  liquidMinor: money("liquid_minor").notNull(),
+  assetsMinor: money("assets_minor").notNull(),
+  liabilitiesMinor: money("liabilities_minor").notNull(),
+  updatedAt: updatedAt(),
+}, (t) => [uniqueIndex("net_worth_snapshots_uq").on(t.workspaceId, t.month)]);

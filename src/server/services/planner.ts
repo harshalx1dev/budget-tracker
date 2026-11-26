@@ -3,6 +3,8 @@ import { and, asc, eq, gte, inArray, isNull, lt, notExists, sql } from "drizzle-
 import { db, schema } from "@/server/db";
 import { listAccounts } from "@/server/services/ledger";
 import { listExpected } from "@/server/services/commitments";
+import { listAssets, upcomingMaturities } from "@/server/services/savings";
+import { isAssetType } from "@/lib/savings";
 import { budgetAvailable, computeSafeToSpend, goalProgress, monthEnd, nextMonth, projectForecast, variableSpend, type ForecastMonth } from "@/lib/planner";
 import { addMonths, daysBetween, shiftDays, todayISO } from "@/lib/dates";
 
@@ -59,18 +61,23 @@ export async function listGoals(workspaceId: string) {
   const sums = await db.select({ goalId: goalContributions.goalId, saved: sql<number>`sum(${goalContributions.amountMinor})`.mapWith(Number) })
     .from(goalContributions).where(eq(goalContributions.workspaceId, workspaceId)).groupBy(goalContributions.goalId);
   const today = todayISO();
+  const assetValue = new Map((await listAssets(workspaceId)).map((a) => [a.id, a.valueMinor]));
   const monthStart = `${today.slice(0, 7)}-01`;
   const thisMonth = await db.select({ goalId: goalContributions.goalId, n: sql<number>`sum(${goalContributions.amountMinor})`.mapWith(Number) })
     .from(goalContributions).where(and(eq(goalContributions.workspaceId, workspaceId), gte(goalContributions.madeOn, monthStart))).groupBy(goalContributions.goalId);
   return rows.map((g) => {
-    const saved = sums.find((s) => s.goalId === g.id)?.saved ?? 0;
+    const saved = g.accountId && assetValue.has(g.accountId) ? assetValue.get(g.accountId)! : (sums.find((s) => s.goalId === g.id)?.saved ?? 0);
     const contributedThisMonth = thisMonth.find((s) => s.goalId === g.id)?.n ?? 0;
     return { ...g, saved, contributedThisMonth, ...goalProgress({ targetMinor: g.targetMinor, savedMinor: saved, targetDate: g.targetDate, today }) };
   });
 }
 
-export async function addGoal(workspaceId: string, name: string, targetMinor: number, targetDate: string | null) {
-  await db.insert(goals).values({ workspaceId, name, targetMinor, targetDate });
+export async function addGoal(workspaceId: string, name: string, targetMinor: number, targetDate: string | null, accountId: string | null = null) {
+  if (accountId) {
+    const [a] = await db.select({ type: schema.accounts.type }).from(schema.accounts).where(and(eq(schema.accounts.id, accountId), eq(schema.accounts.workspaceId, workspaceId)));
+    if (!a || !isAssetType(a.type)) throw new Error("Pick a savings or investment account to track this goal");
+  }
+  await db.insert(goals).values({ workspaceId, name, targetMinor, targetDate, accountId });
 }
 
 export async function addContribution(workspaceId: string, goalId: string, amountMinor: number, madeOn: string, note: string | null) {
@@ -95,7 +102,7 @@ export async function safeToSpend(workspaceId: string, homeCurrency: string) {
     listGoals(workspaceId),
     db.select({ buffer: workspaces.bufferMinor }).from(workspaces).where(eq(workspaces.id, workspaceId)),
   ]);
-  const balance = accts.filter((a) => a.currency === homeCurrency).reduce((s, a) => s + a.balanceMinor, 0);
+  const balance = accts.filter((a) => a.currency === homeCurrency && !isAssetType(a.type)).reduce((s, a) => s + a.balanceMinor, 0);
   const unpaid = expected.filter((e) => e.status !== "paid");
   const nextIncome = unpaid.filter((e) => e.kind === "income").map((e) => e.dueOn).sort()[0] ?? null;
   // Without a known payday the horizon is the end of this month.
@@ -116,8 +123,8 @@ export async function forecast(workspaceId: string, homeCurrency: string, count 
   for (let i = 1; i < count; i++) yms.push(nextMonth(yms[i - 1]));
   const endDate = monthEnd(yms.at(-1)!);
 
-  const [accts, expectedAll, status] = await Promise.all([listAccounts(workspaceId), listExpected(workspaceId, today, endDate), budgetStatus(workspaceId, thisYM)]);
-  const startBalance = accts.filter((a) => a.currency === homeCurrency).reduce((s, a) => s + a.balanceMinor, 0);
+  const [accts, expectedAll, status, maturities] = await Promise.all([listAccounts(workspaceId), listExpected(workspaceId, today, endDate), budgetStatus(workspaceId, thisYM), upcomingMaturities(workspaceId, today, endDate)]);
+  const startBalance = accts.filter((a) => a.currency === homeCurrency && !isAssetType(a.type)).reduce((s, a) => s + a.balanceMinor, 0);
   const expected = expectedAll.filter((e) => e.status !== "paid");
 
   // Recent uncommitted spend (not matched to a loan or rule) as the baseline for categories without a budget.
@@ -140,7 +147,8 @@ export async function forecast(workspaceId: string, homeCurrency: string, count 
   const dim = new Date(Date.UTC(+thisYM.slice(0, 4), +thisYM.slice(5, 7), 0)).getUTCDate();
   const months: ForecastMonth[] = yms.map((ym, i) => {
     const inMonth = expected.filter((e) => e.dueOn.slice(0, 7) === ym);
-    const income = inMonth.filter((e) => e.kind === "income").reduce((s, e) => s + e.amountMinor, 0);
+    // Fixed deposits paying out this month come back as money you can spend.
+    const income = inMonth.filter((e) => e.kind === "income").reduce((s, e) => s + e.amountMinor, 0) + maturities.filter((m) => m.maturityOn.slice(0, 7) === ym).reduce((s, m) => s + m.maturityMinor, 0);
     const committed = inMonth.filter((e) => e.kind === "expense").reduce((s, e) => s + e.amountMinor, 0);
     const committedIn = (cat: string) => inMonth.filter((e) => e.kind === "expense" && e.categoryId === cat).reduce((s, e) => s + e.amountMinor, 0);
     const variable = variableSpend({
@@ -156,6 +164,7 @@ export async function forecast(workspaceId: string, homeCurrency: string, count 
   return {
     startBalance,
     emiByMonth,
+    maturities,
     rows: projectForecast(startBalance, months),
     incomeKnown: expected.some((e) => e.kind === "income"),
     hasBudgets: status.length > 0,

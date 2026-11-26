@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { sendReminders } from "@/server/services/push";
+import { snapshotAll } from "@/server/services/savings";
 
 export const maxDuration = 60;
 
@@ -14,7 +15,10 @@ function authorised(header: string | null) {
 export async function GET(request: Request) {
   if (!authorised(request.headers.get("authorization"))) return new Response("unauthorized", { status: 401 });
   try {
-    return Response.json(await sendReminders());
+    const reminders = await sendReminders();
+    // The same daily job keeps everyone's net-worth history current.
+    const snapshots = await snapshotAll();
+    return Response.json({ ...reminders, snapshots });
   } catch (e) {
     console.error("reminders failed", e);
     return Response.json({ error: "failed" }, { status: 500 });

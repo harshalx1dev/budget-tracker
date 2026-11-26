@@ -3,7 +3,8 @@ import { eq } from "drizzle-orm";
 import { db, schema } from "@/server/db";
 
 const EXPENSE = ["Food & dining", "Groceries", "Transport", "Rent", "Bills & utilities", "EMI", "Shopping", "Health", "Entertainment", "Travel", "Investments", "Other"];
-const INCOME = ["Salary", "Other income"];
+const INCOME = ["Salary", "Other income", "Interest"];
+const ESSENTIAL = new Set(["Groceries", "Transport", "Rent", "Bills & utilities", "EMI", "Health"]);
 
 /** Runs once when a user is created: a personal workspace, a Cash account and starter categories. */
 export async function createPersonalWorkspace(userId: string, name: string) {
@@ -12,7 +13,7 @@ export async function createPersonalWorkspace(userId: string, name: string) {
     await tx.insert(schema.workspaceMembers).values({ workspaceId: ws.id, userId, role: "owner" });
     await tx.insert(schema.accounts).values({ workspaceId: ws.id, name: "Cash", type: "cash" });
     await tx.insert(schema.categories).values([
-      ...EXPENSE.map((n) => ({ workspaceId: ws.id, name: n, kind: "expense" as const })),
+      ...EXPENSE.map((n) => ({ workspaceId: ws.id, name: n, kind: "expense" as const, essential: ESSENTIAL.has(n) })),
       ...INCOME.map((n) => ({ workspaceId: ws.id, name: n, kind: "income" as const })),
     ]);
   });
