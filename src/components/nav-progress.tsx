@@ -2,14 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { LogoMark } from "./logo";
+
+const MIN_MS = 1100; // keep the loading screen up at least this long, even when the page is already ready
+const MAX_MS = 20000; // never trap anyone if a navigation stalls
 
 /**
- * A thin bar across the top while a page loads after an in-app link click. It starts on the click and is "done"
- * as soon as the path changes, so nothing needs to be set from an effect.
+ * The loading screen between pages. It appears on the click of an in-app link, stays until the new page has
+ * arrived and a minimum time has passed, then fades away. A thin bar also runs across the top.
  */
 export function NavProgress() {
   const path = usePathname();
   const [from, setFrom] = useState<string | null>(null);
+  const [startedAt, setStartedAt] = useState(0);
+  const [show, setShow] = useState(false);
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -19,11 +25,32 @@ export function NavProgress() {
       const url = new URL(a.href, window.location.href);
       if (url.origin !== window.location.origin || url.pathname === window.location.pathname) return;
       setFrom(window.location.pathname);
+      setStartedAt(Date.now());
+      setShow(true);
     };
     document.addEventListener("click", onClick, true);
     return () => document.removeEventListener("click", onClick, true);
   }, []);
 
-  const state = from === null ? "idle" : from === path ? "running" : "done";
-  return <div className="navprogress" data-state={state} aria-hidden="true" />;
+  const arrived = from !== null && from !== path;
+  useEffect(() => {
+    if (!show) return;
+    const wait = arrived ? Math.max(0, MIN_MS - (Date.now() - startedAt)) : Math.max(0, MAX_MS - (Date.now() - startedAt));
+    const t = setTimeout(() => { setShow(false); setFrom(null); }, wait);
+    return () => clearTimeout(t);
+  }, [show, arrived, startedAt]);
+
+  const state = from === null ? "idle" : arrived ? "done" : "running";
+  return (
+    <>
+      <div className="navprogress" data-state={state} aria-hidden="true" />
+      <div className="pageload" data-show={show} aria-hidden={!show} role="status" aria-label="Loading">
+        <div className="pageload__rings" aria-hidden="true" />
+        <div className="pageload__inner">
+          <span className="pageload__mark"><LogoMark size={68} draw={show} /></span>
+          <span className="pageload__track"><span className="pageload__bar" /></span>
+        </div>
+      </div>
+    </>
+  );
 }

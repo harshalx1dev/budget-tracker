@@ -23,6 +23,7 @@ const STEPS = [
 export default function Landing() {
   return (
     <div className="land">
+      <div className="land__bg" aria-hidden="true"><span className="orb orb--a" /><span className="orb orb--b" /><span className="rosette rosette--a" /><span className="rosette rosette--b" /><span className="rosette rosette--c" /></div>
       <header className="land__bar container">
         <Link href="/" className="wordmark" aria-label={`${BRAND.name}, home`}><LogoMark size={28} /><Wordmark /></Link>
         <nav className="land__nav" aria-label="Site">
