@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { requireWorkspace } from "@/server/session";
+import { safeToSpend } from "@/server/services/planner";
 import { listAccounts, listCategories, listTransactions, monthSummary } from "@/server/services/ledger";
 import { formatMinor } from "@/lib/money";
 import { thisMonth } from "@/lib/dates";
@@ -11,17 +12,19 @@ import { LedgerTable } from "@/components/ledger-table";
 async function OverviewLoader() {
   const { workspace } = await requireWorkspace();
   const home = workspace.homeCurrency;
-  const [accounts, categories, recent, month] = await Promise.all([
+  const [accounts, categories, recent, month, sts] = await Promise.all([
     listAccounts(workspace.id),
     listCategories(workspace.id),
     listTransactions(workspace.id, 8),
     monthSummary(workspace.id, home, thisMonth()),
+    safeToSpend(workspace.id, home),
   ]);
   // Balances are summed only for accounts in the home currency; others need FX rates (later phase).
   const balance = accounts.filter((a) => a.currency === home).reduce((s, a) => s + a.balanceMinor, 0);
   const hasForeign = accounts.some((a) => a.currency !== home);
   const stats = [
     { label: "balance", value: formatMinor(balance, home) },
+    { label: "safe to spend", value: formatMinor(sts.safe, home), note: sts.safe > 0 ? `${formatMinor(sts.perDay, home)} a day until ${sts.incomeKnown && sts.nextIncome ? "payday" : "month end"}` : "nothing spare yet" },
     { label: "in this month", value: formatMinor(month.income, home) },
     { label: "out this month", value: formatMinor(month.expense, home) },
   ];
@@ -34,6 +37,7 @@ async function OverviewLoader() {
           <div key={s.label} className="stat well raised">
             <p className="label">{s.label}</p>
             <p className="figure">{s.value}</p>
+            {"note" in s && s.note ? <p className="label">{s.note}</p> : null}
           </div>
         ))}
       </section>

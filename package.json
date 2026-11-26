@@ -11,9 +11,10 @@
     "db:generate": "node --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs generate",
     "db:migrate": "node --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs migrate",
     "db:studio": "node --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs studio",
-    "test": "tsx --test src/lib/lib.test.ts src/lib/phase2.test.ts",
+    "test": "tsx --test src/lib/lib.test.ts src/lib/phase2.test.ts src/lib/planner.test.ts",
     "check:capture": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-capture.ts",
-    "check:commitments": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-commitments.ts"
+    "check:commitments": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-commitments.ts",
+    "check:planner": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-planner.ts"
   },
   "dependencies": {
     "better-auth": "^1.7.28",
@@ -27,6 +28,7 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "server-only": "^0.0.1",
+    "unpdf": "^2.2.2",
     "zod": "^4.6.7"
   },
   "devDependencies": {

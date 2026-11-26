@@ -93,6 +93,7 @@ export const archiveLoan = (workspaceId: string, id: string) => db.update(loans)
 export type NewRule = {
   name: string; kind: "income" | "expense"; amountMinor: number; frequency: "weekly" | "monthly" | "yearly"; intervalCount: number;
   startOn: string; endOn: string | null; maxCount: number | null; matchPattern: string | null; accountId: string | null; categoryId: string | null;
+  anchor: "start_day" | "month_end"; weekendShift: "none" | "sunday_back" | "weekend_back";
 };
 
 export async function createRule(workspaceId: string, r: NewRule) {
@@ -125,7 +126,7 @@ export async function expectedBetween(workspaceId: string, from: string, to: str
     }
   }
   for (const r of rs) {
-    for (const dueOn of occurrences({ frequency: r.frequency, intervalCount: r.intervalCount, startOn: r.startOn, endOn: r.endOn, maxCount: r.maxCount }, from, to)) {
+    for (const dueOn of occurrences({ frequency: r.frequency, intervalCount: r.intervalCount, startOn: r.startOn, endOn: r.endOn, maxCount: r.maxCount, anchor: r.anchor, weekendShift: r.weekendShift }, from, to)) {
       out.push({ key: keyOf("rule", r.id, dueOn), sourceKind: "rule", sourceId: r.id, name: r.name, kind: r.kind, dueOn, amountMinor: r.amountMinor, accountId: r.accountId, categoryId: r.categoryId, pattern: r.matchPattern });
     }
   }

@@ -114,3 +114,38 @@ test("statement: Kotak-style CSV with a single Amount column and spaced Dr / Cr 
   const out = toStatementRows(rows, h, m);
   assert.deepEqual(out.map((r) => [r.kind, r.amount, r.date]), [["expense", 20, "2026-10-01"], ["income", 54897, "2026-10-31"]]);
 });
+
+import { pdfPagesToTable } from "./pdf-statement";
+
+test("pdf: rows, right-aligned amounts and wrapped lines come out as a CSV-shaped table", () => {
+  const it = (x: number, y: number, w: number, str: string) => ({ x, y, w, str });
+  const header = [it(44, 428, 4, "#"), it(75, 428, 18, "Date"), it(124, 428, 43, "Description"), it(280, 428, 47, "Chq/Ref. No."), it(355, 428, 61, "Withdrawal (Dr.)"), it(429, 428, 47, "Deposit (Cr.)"), it(498, 428, 30, "Balance")];
+  const page = [
+    ...header,
+    it(119, 409, 55, "Opening Balance"), it(525, 409, 31, "21,234.96"),
+    it(39, 396, 4, "1"), it(73, 396, 37, "01 Oct 2026"), it(119, 396, 41, "UPI/TEST"), it(275, 396, 60, "UPI-100000000001"), it(397, 396, 21, "499.00"), it(525, 396, 31, "20,735.96"),
+    it(119, 388, 120, "SHOP/YESB/100000000001/auto"),
+    it(39, 372, 4, "2"), it(73, 372, 37, "31 Oct 2026"), it(119, 372, 80, "NEFT SALARY"), it(275, 372, 60, "NEFTINW-1"), it(436, 372, 40, "54,897.00"), it(525, 372, 31, "75,632.96"),
+    it(200, 100, 60, "Page 1 of 7"),
+  ];
+  const table = pdfPagesToTable([page])!;
+  assert.equal(table.length, 3);
+  assert.deepEqual(table[1], ["01 Oct 2026", "UPI/TEST SHOP/YESB/100000000001/auto", "UPI-100000000001", "499.00", "", "20,735.96"]);
+  assert.deepEqual(table[2].slice(3, 5), ["", "54,897.00"]);
+  const h = findHeaderRow(table);
+  const rows = toStatementRows(table, h, guessMapping(table[h])!);
+  assert.deepEqual(rows.map((r) => [r.kind, r.amount]), [["expense", 499], ["income", 54897]]);
+});
+
+test("recurrence: payday on the last day, Sunday moves back a day", () => {
+  const salary = { frequency: "monthly" as const, intervalCount: 1, startOn: "2026-10-31", endOn: null, maxCount: null, anchor: "month_end" as const, weekendShift: "sunday_back" as const };
+  // Oct 31 2026 is a Saturday (stays); Nov 30 Monday; Dec 31 Thursday; Jan 31 2027 Sunday -> 30; Feb 28 2027 Sunday -> 27; Mar 31 Wednesday.
+  assert.deepEqual(occurrences(salary, "2026-10-01", "2027-03-31"), ["2026-10-31", "2026-11-30", "2026-12-31", "2027-01-30", "2027-02-27", "2027-03-31"]);
+  assert.deepEqual(occurrences(salary, "2027-04-01", "2027-04-30"), ["2027-04-30"]);
+});
+
+test("recurrence: weekend_back moves Saturday and Sunday to Friday; a shifted date at the window edge is kept", () => {
+  const r = { frequency: "monthly" as const, intervalCount: 1, startOn: "2026-10-31", endOn: null, maxCount: 2, anchor: "month_end" as const, weekendShift: "weekend_back" as const };
+  assert.deepEqual(occurrences(r, "2026-10-01", "2026-12-31"), ["2026-10-30", "2026-11-30"]);
+  assert.deepEqual(occurrences({ ...r, weekendShift: "sunday_back", startOn: "2027-01-31", maxCount: 1 }, "2027-01-30", "2027-01-30"), ["2027-01-30"]);
+});

@@ -75,6 +75,8 @@ export async function addRecurringAction(_: CommitState, fd: FormData): Promise<
     kind: z.enum(["income", "expense"]),
     frequency: z.enum(["weekly", "monthly", "yearly"]),
     startOn: day,
+    anchor: z.enum(["start_day", "month_end"]).default("start_day"),
+    weekendShift: z.enum(["none", "sunday_back", "weekend_back"]).default("none"),
   }).safeParse(Object.fromEntries(fd));
   const amountMinor = toMinor(String(fd.get("amount") ?? ""), workspace.homeCurrency);
   const every = num(fd.get("every")) ?? 1;

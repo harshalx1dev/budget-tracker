@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import Papa from "papaparse";
 import { Upload } from "lucide-react";
-import { importAction } from "@/app/app/capture-actions";
+import { importAction, parsePdfAction } from "@/app/app/capture-actions";
 import { findHeaderRow, guessMapping, toStatementRows, type Mapping, type StatementRow } from "@/lib/statement";
 import { formatMinor } from "@/lib/money";
 import { formatDay } from "@/lib/dates";
@@ -24,16 +24,27 @@ export function ImportForm({ accounts }: { accounts: Acct[] }) {
   const [msg, setMsg] = useState<{ error?: string; added?: number; merged?: number; duplicates?: number } | null>(null);
   const [busy, start] = useTransition();
 
+  function load(table: string[][], filename: string) {
+    const headerIdx = findHeaderRow(table);
+    if (headerIdx < 0) return setMsg({ error: "could not find the transaction table in that file" }), setP(null);
+    setP({ filename, header: table[headerIdx], table, headerIdx, mapping: guessMapping(table[headerIdx]) });
+  }
+
   function onFile(file: File) {
     setMsg(null);
+    if (/\.pdf$/i.test(file.name) || file.type === "application/pdf") {
+      const fd = new FormData();
+      fd.set("file", file);
+      start(async () => {
+        const r = await parsePdfAction(fd);
+        if (r.error || !r.table) { setP(null); return setMsg({ error: r.error ?? "could not read that PDF" }); }
+        load(r.table, file.name);
+      });
+      return;
+    }
     Papa.parse<string[]>(file, {
       skipEmptyLines: true,
-      complete: (res) => {
-        const table = res.data;
-        const headerIdx = findHeaderRow(table);
-        if (headerIdx < 0) return setMsg({ error: "could not find the transaction table in that file; is it a CSV statement?" }), setP(null);
-        setP({ filename: file.name, header: table[headerIdx], table, headerIdx, mapping: guessMapping(table[headerIdx]) });
-      },
+      complete: (res) => load(res.data, file.name),
       error: () => setMsg({ error: "could not read that file" }),
     });
   }
@@ -45,7 +56,7 @@ export function ImportForm({ accounts }: { accounts: Acct[] }) {
   return (
     <div className="stack">
       <div className="well tx-form">
-        <label className="field"><span className="label">statement file (csv)</span><input type="file" accept=".csv,text/csv" className="input" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} /></label>
+        <label className="field"><span className="label">statement file (csv or pdf)</span><input type="file" accept=".csv,text/csv,.pdf,application/pdf" className="input" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} /></label>
         <label className="field"><span className="label">import into</span>
           <select className="input" value={accountId} onChange={(e) => setAccountId(e.target.value)}>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name} ({a.currency})</option>)}</select>
         </label>

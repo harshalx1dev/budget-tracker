@@ -64,14 +64,14 @@ async function main() {
   // 3) three SIPs on one day, told apart by mandate code
   const sipDue = shiftDays(today, -20);
   const codes = ["0000AAAA1111BBBB", "0000CCCC2222DDDD", "0000EEEE3333FFFF"];
-  for (const [i, c] of codes.entries()) await createRule(ws, { name: `SIP ${i + 1}`, kind: "expense", amountMinor: 100000, frequency: "monthly", intervalCount: 1, startOn: sipDue, endOn: null, maxCount: 12, matchPattern: c, accountId: null, categoryId: null });
+  for (const [i, c] of codes.entries()) await createRule(ws, { name: `SIP ${i + 1}`, kind: "expense", amountMinor: 100000, frequency: "monthly", intervalCount: 1, startOn: sipDue, endOn: null, maxCount: 12, matchPattern: c, accountId: null, categoryId: null, anchor: "start_day", weekendShift: "none" });
   await importStatement(ws, "INR", bank.id, "sip.csv", [...codes].reverse().map((c, i) => ({ date: sipDue, kind: "expense" as const, amount: 1000, narration: `NACH-MUT-DR-INDIAN CLEARING CORP-${c}`, ref: `NACH${i}` })));
   const sips = (await listExpected(ws, sipDue, sipDue)).filter((e) => e.name.startsWith("SIP"));
   ok(sips.length === 3 && sips.every((s) => s.status === "paid"), "three SIPs each matched one row");
   ok(new Set(sips.map((s) => s.transactionId)).size === 3, "no row was used twice");
 
   // 4) an unpaid recurring item is overdue; mark paid records it once
-  await createRule(ws, { name: "Gym", kind: "expense", amountMinor: 80000, frequency: "monthly", intervalCount: 1, startOn: shiftDays(today, -5), endOn: shiftDays(today, 100), maxCount: null, matchPattern: null, accountId: null, categoryId: null });
+  await createRule(ws, { name: "Gym", kind: "expense", amountMinor: 80000, frequency: "monthly", intervalCount: 1, startOn: shiftDays(today, -5), endOn: shiftDays(today, 100), maxCount: null, matchPattern: null, accountId: null, categoryId: null, anchor: "start_day", weekendShift: "none" });
   const gym = (await listExpected(ws, shiftDays(today, -5), shiftDays(today, -5))).find((e) => e.name === "Gym")!;
   ok(gym.status === "overdue", "unpaid past item is overdue");
   await markPaid(ws, "rule", gym.sourceId, gym.dueOn);

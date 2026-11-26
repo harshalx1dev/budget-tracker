@@ -50,7 +50,7 @@ async function CommitmentsLoader() {
                     <td>{e.name}</td>
                     <td className="num amt" data-kind={e.kind}>{formatMinor(e.kind === "income" ? e.amountMinor : -e.amountMinor, home, { sign: true })}</td>
                     <td>
-                      {e.status === "paid" ? <>paid{e.actualMinor !== null && e.actualMinor !== e.amountMinor ? <span className="label"> {formatMinor(e.actualMinor, home)} against {formatMinor(e.amountMinor, home)}, </span> : null}{e.sourceKind === "loan" && e.actualMinor !== null && e.actualMinor !== e.amountMinor ? <Link href={`/app/commitments/loans/${e.sourceId}`} className="link">revise the emi</Link> : null}</>
+                      {e.status === "paid" ? <>paid{e.actualMinor !== null && e.actualMinor !== e.amountMinor ? <span className="label"> {formatMinor(e.actualMinor, home)} against {formatMinor(e.amountMinor, home)}, </span> : null}{e.sourceKind === "loan" && e.actualMinor !== null && e.actualMinor !== e.amountMinor ? <Link href={`/app/plan/commitments/loans/${e.sourceId}`} className="link">revise the emi</Link> : null}</>
                         : e.status === "overdue" ? <span className="error">overdue</span> : "upcoming"}
                     </td>
                     <td>{e.status !== "paid" ? <MarkPaidButton sourceKind={e.sourceKind} sourceId={e.sourceId} dueOn={e.dueOn} /> : null}</td>
@@ -72,7 +72,7 @@ async function CommitmentsLoader() {
               <tbody>
                 {loanRows.map(({ l, next, remaining, ends, outstanding }) => (
                   <tr key={l.id}>
-                    <td><Link href={`/app/commitments/loans/${l.id}`} className="link">{l.name}</Link></td>
+                    <td><Link href={`/app/plan/commitments/loans/${l.id}`} className="link">{l.name}</Link></td>
                     <td className="num">{formatMinor(next?.amountMinor ?? l.emiMinor, home)}</td>
                     <td>{next ? formatDay(next.dueOn) : "finished"}</td>
                     <td className="num">{remaining}</td>

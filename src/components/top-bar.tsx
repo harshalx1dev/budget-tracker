@@ -10,7 +10,7 @@ const LINKS = [
   { href: "/app", label: "overview" },
   { href: "/app/transactions", label: "ledger" },
   { href: "/app/inbox", label: "inbox" },
-  { href: "/app/commitments", label: "plan" },
+  { href: "/app/plan", label: "plan" },
   { href: "/app/accounts", label: "accounts" },
   { href: "/app/settings", label: "settings" },
 ];
@@ -24,7 +24,7 @@ export function TopBar() {
         <Link href="/app" className="wordmark">budget<span>.</span></Link>
         <nav className="nav" aria-label="main">
           {LINKS.map((l) => (
-            <Link key={l.href} href={l.href} className="pill" aria-current={path === l.href ? "page" : undefined}>{l.label}</Link>
+            <Link key={l.href} href={l.href} className="pill" aria-current={path === l.href || (l.href !== "/app" && path.startsWith(`${l.href}/`)) ? "page" : undefined}>{l.label}</Link>
           ))}
         </nav>
         <div className="topbar__end">

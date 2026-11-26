@@ -60,6 +60,8 @@ export const workspaces = pgTable("workspaces", {
   id: id(),
   name: text("name").notNull(),
   homeCurrency: text("home_currency").notNull().default("INR"),
+  // Money to keep untouched; safe-to-spend and affordability treat it as spent.
+  bufferMinor: bigint("buffer_minor", { mode: "number" }).notNull().default(0),
   createdAt: createdAt(),
 });
 
@@ -154,6 +156,8 @@ export const categoryRules = pgTable("category_rules", {
 export const frequency = pgEnum("frequency", ["weekly", "monthly", "yearly"]);
 export const revisionKind = pgEnum("revision_kind", ["emi", "rate", "prepayment"]);
 export const expectedSource = pgEnum("expected_source", ["loan", "rule"]);
+export const ruleAnchor = pgEnum("rule_anchor", ["start_day", "month_end"]);
+export const weekendShift = pgEnum("weekend_shift", ["none", "sunday_back", "weekend_back"]);
 
 export const loans = pgTable("loans", {
   id: id(),
@@ -198,6 +202,8 @@ export const recurringRules = pgTable("recurring_rules", {
   startOn: date("start_on").notNull(),
   endOn: date("end_on"),
   maxCount: integer("max_count"),
+  anchor: ruleAnchor("anchor").notNull().default("start_day"),
+  weekendShift: weekendShift("weekend_shift").notNull().default("none"),
   matchPattern: text("match_pattern"),
   archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: createdAt(),
@@ -216,3 +222,34 @@ export const expectedMatches = pgTable("expected_matches", {
   uniqueIndex("expected_matches_occurrence_uq").on(t.sourceKind, t.sourceId, t.dueOn),
   uniqueIndex("expected_matches_tx_uq").on(t.transactionId),
 ]);
+
+/* Planner */
+export const budgets = pgTable("budgets", {
+  id: id(),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  categoryId: text("category_id").notNull().references(() => categories.id, { onDelete: "cascade" }),
+  amountMinor: money("amount_minor").notNull(), // monthly limit
+  rollover: boolean("rollover").notNull().default(false),
+  startMonth: text("start_month").notNull(), // YYYY-MM; rollover counts from here
+  createdAt: createdAt(),
+}, (t) => [uniqueIndex("budgets_workspace_category_uq").on(t.workspaceId, t.categoryId)]);
+
+export const goals = pgTable("goals", {
+  id: id(),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  targetMinor: money("target_minor").notNull(),
+  targetDate: date("target_date"),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
+  createdAt: createdAt(),
+}, (t) => [index("goals_workspace_idx").on(t.workspaceId)]);
+
+export const goalContributions = pgTable("goal_contributions", {
+  id: id(),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  goalId: text("goal_id").notNull().references(() => goals.id, { onDelete: "cascade" }),
+  amountMinor: money("amount_minor").notNull(), // negative = withdrawn
+  madeOn: date("made_on").notNull(),
+  note: text("note"),
+  createdAt: createdAt(),
+}, (t) => [index("goal_contributions_goal_idx").on(t.goalId)]);

@@ -76,6 +76,12 @@ export function RecurringForm({ accounts, categories }: { accounts: Acct[]; cate
       <label className="field"><span className="label">amount</span><input name="amount" inputMode="decimal" required className="input" /></label>
       <label className="field"><span className="label">repeats</span><select name="frequency" className="input" defaultValue="monthly"><option value="weekly">weekly</option><option value="monthly">monthly</option><option value="yearly">yearly</option></select></label>
       <label className="field"><span className="label">every</span><input name="every" inputMode="numeric" defaultValue="1" className="input" /></label>
+      <label className="field"><span className="label">on which day</span>
+        <select name="anchor" className="input" defaultValue="start_day"><option value="start_day">same day each month</option><option value="month_end">last day of the month</option></select>
+      </label>
+      <label className="field"><span className="label">if it lands on a weekend</span>
+        <select name="weekendShift" className="input" defaultValue="none"><option value="none">leave it</option><option value="sunday_back">sunday goes back a day</option><option value="weekend_back">weekend goes back to friday</option></select>
+      </label>
       <label className="field"><span className="label">starts</span><input name="startOn" type="date" required defaultValue={localToday()} suppressHydrationWarning className="input" /></label>
       <label className="field"><span className="label">ends on (optional)</span><input name="endOn" type="date" className="input" /></label>
       <label className="field"><span className="label">or after this many times</span><input name="count" inputMode="numeric" className="input" /></label>

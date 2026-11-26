@@ -7,6 +7,7 @@ import { addCategory, addRule, categorize, convertToTransfer, createTransfer, de
 import { listAccounts } from "@/server/services/ledger";
 import { exponent, formatMinor, toMinor } from "@/lib/money";
 import { todayISO } from "@/lib/dates";
+import { pdfToTable } from "@/server/services/pdf";
 import type { StatementRow } from "@/lib/statement";
 
 export type CaptureState = { error?: string; message?: string };
@@ -105,4 +106,17 @@ export async function deleteRuleAction(id: string) {
   const { workspace } = await requireWorkspace();
   await deleteRule(workspace.id, id);
   refresh();
+}
+
+const MAX_PDF = 4 * 1024 * 1024;
+
+/** Reads a bank PDF into the same table shape a CSV gives, so the column check and import are shared. */
+export async function parsePdfAction(fd: FormData): Promise<{ error?: string; table?: string[][] }> {
+  await requireWorkspace();
+  const file = fd.get("file");
+  if (!(file instanceof File) || file.size === 0) return { error: "choose a PDF file" };
+  if (file.size > MAX_PDF) return { error: "that PDF is over 4 MB" };
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (String.fromCharCode(...bytes.slice(0, 5)) !== "%PDF-") return { error: "that does not look like a PDF" };
+  try { return { table: await pdfToTable(bytes) }; } catch (e) { return { error: e instanceof Error ? e.message : "could not read that PDF" }; }
 }

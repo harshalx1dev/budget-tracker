@@ -1,0 +1,50 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { budgetAvailable, computeSafeToSpend, goalProgress, monthEnd, monthsBetween, projectForecast, variableSpend } from "./planner";
+
+test("months: end of month and distance", () => {
+  assert.equal(monthEnd("2027-02"), "2027-02-28");
+  assert.equal(monthEnd("2028-02"), "2028-02-29");
+  assert.equal(monthsBetween("2026-11", "2027-03"), 4);
+});
+
+test("budget: no rollover is just the limit; rollover carries leftovers and overspend, floored at zero", () => {
+  const base = { limit: 10000, startMonth: "2026-09", month: "2026-12", spentByMonth: { "2026-09": 4000, "2026-10": 12000, "2026-11": 9000 } };
+  assert.equal(budgetAvailable({ ...base, rollover: false }), 10000);
+  // carry = 6000 - 2000 + 1000 = 5000
+  assert.equal(budgetAvailable({ ...base, rollover: true }), 15000);
+  assert.equal(budgetAvailable({ ...base, rollover: true, spentByMonth: { "2026-09": 30000 } }), 10000 + Math.max(0, 10000 - 30000 + 10000 + 10000));
+  assert.equal(budgetAvailable({ ...base, rollover: true, spentByMonth: { "2026-09": 90000 } }), 10000);
+});
+
+test("forecast: balances roll forward month by month", () => {
+  const rows = projectForecast(100000, [
+    { month: "2026-12", income: 500000, committed: 200000, variable: 150000 },
+    { month: "2027-01", income: 500000, committed: 200000, variable: 150000 },
+  ]);
+  assert.deepEqual(rows.map((r) => [r.start, r.end]), [[100000, 250000], [250000, 400000]]);
+});
+
+test("variable spend: budget headroom for budgeted categories, scaled average for the rest", () => {
+  const v = variableSpend({
+    budgeted: [{ limitAvailable: 10000, committed: 2000, spentSoFar: 3000 }, { limitAvailable: 5000, committed: 0, spentSoFar: 9000 }],
+    unbudgetedAvg: 6000,
+    fractionLeft: 0.5,
+  });
+  assert.equal(v, 5000 + 0 + 3000); // overspent budget contributes nothing, not a negative
+});
+
+test("safe to spend: breakdown, per day, and never a negative per-day figure", () => {
+  assert.deepEqual(computeSafeToSpend({ balance: 3000000, dueOutflows: 1000000, goalSetAside: 200000, buffer: 500000, days: 10 }), { safe: 1300000, perDay: 130000, days: 10 });
+  assert.equal(computeSafeToSpend({ balance: 100000, dueOutflows: 500000, goalSetAside: 0, buffer: 0, days: 5 }).perDay, 0);
+  assert.equal(computeSafeToSpend({ balance: 100000, dueOutflows: 0, goalSetAside: 0, buffer: 0, days: 0 }).days, 1);
+});
+
+test("goals: required monthly amount, done, open-ended and overdue", () => {
+  const today = "2026-11-26";
+  assert.deepEqual(goalProgress({ targetMinor: 1200000, savedMinor: 0, targetDate: "2027-05-15", today }), { remaining: 1200000, monthsLeft: 6, requiredMonthly: 200000, status: "on-track" });
+  assert.equal(goalProgress({ targetMinor: 100, savedMinor: 100, targetDate: null, today }).status, "done");
+  assert.equal(goalProgress({ targetMinor: 100, savedMinor: 0, targetDate: null, today }).requiredMonthly, null);
+  assert.equal(goalProgress({ targetMinor: 100, savedMinor: 0, targetDate: "2026-11-01", today }).status, "overdue");
+  assert.equal(goalProgress({ targetMinor: 100, savedMinor: 0, targetDate: "2026-11-30", today }).monthsLeft, 1);
+});

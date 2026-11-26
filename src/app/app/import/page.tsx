@@ -12,7 +12,7 @@ async function ImportLoader() {
   return (
     <div className="settle stack">
       <h1>import a statement</h1>
-      <p className="lead">Export a CSV from your bank, pick the account, and check the columns. Importing the same period twice is safe: lines already imported are skipped.</p>
+      <p className="lead">Download a CSV or PDF statement from your bank, pick the account, and check the columns. Importing the same period twice is safe: lines already imported are skipped.</p>
       <ImportForm accounts={accounts} />
     </div>
   );
