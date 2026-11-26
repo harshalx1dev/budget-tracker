@@ -45,7 +45,7 @@ export async function budgetStatus(workspaceId: string, month: string) {
 
 export async function setBudget(workspaceId: string, categoryId: string, amountMinor: number, rollover: boolean, month: string) {
   const [c] = await db.select({ id: categories.id }).from(categories).where(and(eq(categories.id, categoryId), eq(categories.workspaceId, workspaceId), eq(categories.kind, "expense")));
-  if (!c) throw new Error("pick an expense category");
+  if (!c) throw new Error("Pick an expense category");
   await db.insert(budgets).values({ workspaceId, categoryId, amountMinor, rollover, startMonth: month })
     .onConflictDoUpdate({ target: [budgets.workspaceId, budgets.categoryId], set: { amountMinor, rollover } });
 }
@@ -75,7 +75,7 @@ export async function addGoal(workspaceId: string, name: string, targetMinor: nu
 
 export async function addContribution(workspaceId: string, goalId: string, amountMinor: number, madeOn: string, note: string | null) {
   const [g] = await db.select({ id: goals.id }).from(goals).where(and(eq(goals.id, goalId), eq(goals.workspaceId, workspaceId)));
-  if (!g) throw new Error("goal not found");
+  if (!g) throw new Error("Goal not found");
   await db.insert(goalContributions).values({ workspaceId, goalId, amountMinor, madeOn, note });
 }
 

@@ -12,9 +12,9 @@ import { affordability } from "@/server/services/wishlist";
 import { formatMinor } from "@/lib/money";
 import { formatDayYear } from "@/lib/dates";
 
-export const metadata = { title: "wishlist" };
+export const metadata = { title: "Wishlist" };
 
-const monthLabel = (ym: string) => new Date(`${ym}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "short", year: "numeric", timeZone: "UTC" }).toLowerCase();
+const monthLabel = (ym: string) => new Date(`${ym}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "short", year: "numeric", timeZone: "UTC" });
 const host = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; } };
 const PRIORITY = { 1: "high", 2: "medium", 3: "low" } as const;
 
@@ -31,14 +31,14 @@ async function WishlistLoader() {
 
   return (
     <div className="settle stack">
-      <h1>wishlist</h1>
+      <h1>Wishlist</h1>
       <p className="lead">Everything you want to buy, with links. The app works out what you can afford and when, using your forecast, your buffer and your existing EMIs.</p>
 
       <section className="stack-sm" aria-labelledby="ord-h">
-        <h2 id="ord-h">what to buy, and when</h2>
+        <h2 id="ord-h">What to buy, and when</h2>
         {!a.incomeKnown && <p className="label">Income is not planned yet, so the EMI share of income cannot be checked. <Link href="/app/plan/commitments" className="link">Add your salary</Link>.</p>}
         {active.length === 0 ? (
-          <div className="well empty"><h3>nothing to plan yet</h3><p>Add something you want below. Needs are planned first, then by priority.</p></div>
+          <div className="well empty"><h3>Nothing to plan yet</h3><p>Add something you want below. Needs are planned first, then by priority.</p></div>
         ) : (
           <>
             {plans.length > 0 && (
@@ -64,9 +64,9 @@ async function WishlistLoader() {
         )}
         {active.length > 0 && (
           <div className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
-            <h3>in words</h3>
+            <h3>In words</h3>
             {advice ? <p className="prose-ai">{advice.body}</p> : <p className="label">An AI write-up of this plan: what to buy first, what to wait for. It only explains the figures above and never changes them.</p>}
-            <AiButton label={advice ? "write it again" : "explain this plan"} run={adviseWishlistAction} enabled={Boolean(key)} />
+            <AiButton label={advice ? "Write it again" : "Explain this plan"} run={adviseWishlistAction} enabled={Boolean(key)} />
           </div>
         )}
         <div className="stack-sm">
@@ -76,24 +76,24 @@ async function WishlistLoader() {
       </section>
 
       <section className="stack-sm" aria-labelledby="add-h">
-        <h2 id="add-h">add something</h2>
-        <details className="more"><summary className="pill">add to wishlist</summary><WishForm categories={expense} /></details>
+        <h2 id="add-h">Add something</h2>
+        <details className="more"><summary className="pill">Add to wishlist</summary><WishForm categories={expense} /></details>
       </section>
 
       {active.length > 0 && (
         <section className="stack-sm" aria-labelledby="items-h">
-          <h2 id="items-h">on the list</h2>
+          <h2 id="items-h">On the list</h2>
           <ul className="bars">
             {active.map((i) => (
               <li key={i.id} className="well bar">
                 <div className="bar__head">
                   <p>{i.title} <span className="label">{i.type}, {PRIORITY[i.priority as 1 | 2 | 3]} priority</span></p>
                   <p className="num">{formatMinor(i.priceMinor, home)}</p>
-                  <span className="head-actions"><StatusSelect id={i.id} status={i.status} /><RemoveIcon kind="wish" id={i.id} label={`delete ${i.title}`} /></span>
+                  <span className="head-actions"><StatusSelect id={i.id} status={i.status} /><RemoveIcon kind="wish" id={i.id} label={`Delete ${i.title}`} /></span>
                 </div>
                 <p className="label">
-                  {i.outrightMonth ? `in full from ${monthLabel(i.outrightMonth)}` : "not affordable in full yet"}
-                  {i.emi ? `; on emi from ${monthLabel(i.emi.month)} at ${formatMinor(i.emi.emiMinor, home)} a month for ${i.emi.tenure} months${i.emi.interestMinor ? ` (${formatMinor(i.emi.interestMinor, home)} interest)` : ""}${i.emi.ratioUnknown ? ", EMI share of income unchecked" : ""}` : i.emiTenureMonths ? "; not possible on emi yet" : ""}
+                  {i.outrightMonth ? `In full from ${monthLabel(i.outrightMonth)}` : "Not affordable in full yet"}
+                  {i.emi ? `; on EMI from ${monthLabel(i.emi.month)} at ${formatMinor(i.emi.emiMinor, home)} a month for ${i.emi.tenure} months${i.emi.interestMinor ? ` (${formatMinor(i.emi.interestMinor, home)} interest)` : ""}${i.emi.ratioUnknown ? ", EMI share of income unchecked" : ""}` : i.emiTenureMonths ? "; not possible on EMI yet" : ""}
                   {i.targetDate ? `. You wanted it by ${formatDayYear(i.targetDate)}${(i.outrightMonth ?? "9999") > i.targetDate.slice(0, 7) && (i.emi?.month ?? "9999") > i.targetDate.slice(0, 7) ? ", which this plan misses" : ""}` : ""}
                 </p>
                 {i.notes && <p className="label">{i.notes}</p>}
@@ -107,12 +107,12 @@ async function WishlistLoader() {
 
       {rest.length > 0 && (
         <section className="stack-sm" aria-labelledby="done-h">
-          <h2 id="done-h">bought and dropped</h2>
+          <h2 id="done-h">Bought and dropped</h2>
           <div className="well table-wrap">
             <table className="ledger">
               <tbody>
                 {rest.map((i) => (
-                  <tr key={i.id}><td>{i.title}</td><td className="num">{formatMinor(i.priceMinor, home)}</td><td><StatusSelect id={i.id} status={i.status} /></td><td><RemoveIcon kind="wish" id={i.id} label={`delete ${i.title}`} /></td></tr>
+                  <tr key={i.id}><td>{i.title}</td><td className="num">{formatMinor(i.priceMinor, home)}</td><td><StatusSelect id={i.id} status={i.status} /></td><td><RemoveIcon kind="wish" id={i.id} label={`Delete ${i.title}`} /></td></tr>
                 ))}
               </tbody>
             </table>

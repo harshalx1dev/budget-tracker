@@ -27,7 +27,7 @@ const keyOf = (k: string, id: string, due: string) => `${k}:${id}:${due}`;
 async function owns(table: typeof accounts | typeof categories, workspaceId: string, id: string | null) {
   if (!id) return;
   const [r] = await db.select({ id: table.id }).from(table).where(and(eq(table.id, id), eq(table.workspaceId, workspaceId)));
-  if (!r) throw new Error("not found");
+  if (!r) throw new Error("Not found");
 }
 
 /* ---------- loans ---------- */
@@ -41,7 +41,7 @@ export async function createLoan(workspaceId: string, l: NewLoan) {
   await owns(accounts, workspaceId, l.accountId);
   // The lender's EMI is stored as given; it is only derived when you know principal and rate but not the EMI.
   const emi = l.emiMinor ?? (l.principalMinor && l.annualRatePct !== null ? pmt(l.principalMinor, l.annualRatePct, l.instalments) : null);
-  if (!emi) throw new Error("enter the EMI amount");
+  if (!emi) throw new Error("Enter the EMI amount");
   const [cat] = await db.select({ id: categories.id }).from(categories).where(and(eq(categories.workspaceId, workspaceId), eq(categories.name, "EMI"), eq(categories.kind, "expense")));
   await db.insert(loans).values({
     workspaceId, name: l.name, lender: l.lender, emiMinor: emi, firstDueOn: l.firstDueOn, instalments: l.instalments,
@@ -79,8 +79,8 @@ export type NewRevision = { kind: "emi" | "rate" | "prepayment"; effectiveOn: st
 
 export async function addRevision(workspaceId: string, loanId: string, r: NewRevision) {
   const found = await getLoan(workspaceId, loanId);
-  if (!found) throw new Error("loan not found");
-  if ((r.kind === "rate" || r.kind === "prepayment") && found.loan.principalMinor === null) throw new Error("add the outstanding balance to the loan first; rate and prepayment changes need it");
+  if (!found) throw new Error("Loan not found");
+  if ((r.kind === "rate" || r.kind === "prepayment") && found.loan.principalMinor === null) throw new Error("Add the outstanding balance to the loan first; rate and prepayment changes need it");
   await db.insert(loanRevisions).values({ workspaceId, loanId, effectiveOn: r.effectiveOn, kind: r.kind, emiMinor: r.emiMinor, ratePct: r.ratePct === null ? null : String(r.ratePct), amountMinor: r.amountMinor, note: r.note });
   await autoMatch(workspaceId);
 }
@@ -193,13 +193,13 @@ export async function autoMatch(workspaceId: string) {
 /** Record an expected payment as paid now: creates the transaction on its due date and links it. */
 export async function markPaid(workspaceId: string, sourceKind: "loan" | "rule", sourceId: string, dueOn: string) {
   const item = (await listExpected(workspaceId, dueOn, dueOn)).find((e) => e.sourceKind === sourceKind && e.sourceId === sourceId);
-  if (!item) throw new Error("that payment is not in the plan");
-  if (item.status === "paid") throw new Error("that payment is already recorded");
+  if (!item) throw new Error("That payment is not in the plan");
+  if (item.status === "paid") throw new Error("That payment is already recorded");
   const accts = await db.select().from(accounts).where(eq(accounts.workspaceId, workspaceId)).orderBy(asc(accounts.createdAt));
   const acct = accts.find((a) => a.id === item.accountId) ?? accts.find((a) => a.type === "bank") ?? accts[0];
-  if (!acct) throw new Error("add an account first");
+  if (!acct) throw new Error("Add an account first");
   const [ws] = await db.select({ home: schema.workspaces.homeCurrency }).from(schema.workspaces).where(eq(schema.workspaces.id, workspaceId));
-  if (acct.currency !== ws.home) throw new Error("pick a home-currency account for this commitment");
+  if (acct.currency !== ws.home) throw new Error("Pick a home-currency account for this commitment");
   await db.transaction(async (tx) => {
     const [t] = await tx.insert(transactions).values({
       workspaceId, accountId: acct.id, categoryId: item.categoryId, kind: item.kind, amountMinor: item.amountMinor, currency: acct.currency,

@@ -7,7 +7,7 @@ import { QuickAddBar } from "@/components/quick-add-bar";
 import { TransactionForm } from "@/components/transaction-form";
 import { LedgerTable } from "@/components/ledger-table";
 
-export const metadata = { title: "transactions" };
+export const metadata = { title: "Transactions" };
 
 async function TransactionsLoader() {
   const { workspace } = await requireWorkspace();
@@ -18,10 +18,10 @@ async function TransactionsLoader() {
   ]);
   return (
     <div className="settle stack">
-      <div className="head-row"><h1>transactions</h1><Link href="/app/import" className="btn btn--secondary">import statement</Link></div>
+      <div className="head-row"><h1>Transactions</h1><Link href="/app/import" className="btn btn--secondary">Import statement</Link></div>
       <QuickAddBar />
       <TransactionForm accounts={accounts} categories={categories} homeCurrency={workspace.homeCurrency} />
-      <section className="well" aria-label="ledger">
+      <section className="well" aria-label="Ledger">
         <LedgerTable rows={rows} empty="Nothing here yet. Add an entry above." />
       </section>
     </div>

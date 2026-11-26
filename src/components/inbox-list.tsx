@@ -21,7 +21,7 @@ export function InboxList({ rows, categories, accounts, aiEnabled }: { rows: Row
 
   return (
     <div className="stack-sm">
-      <label className="check"><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> remember my choice for similar entries</label>
+      <label className="check"><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> Remember my choice for similar entries</label>
       {aiEnabled && (
         <button type="button" className="btn btn--secondary" disabled={pending} style={{ justifySelf: "start" }}
           onClick={() => start(async () => { const r = await suggestCategoriesAction(); if (r.error) setNote(r.error); else { setSuggestions(r.suggestions ?? {}); setNote(`${Object.keys(r.suggestions ?? {}).length} suggestions. Tap one to accept it.`); } })}>
@@ -39,12 +39,12 @@ export function InboxList({ rows, categories, accounts, aiEnabled }: { rows: Row
               </div>
               <p className="figure figure--s amt" data-kind={r.kind}>{formatMinor(r.kind === "income" ? r.amountMinor : -r.amountMinor, r.currency, { sign: true })}</p>
             </div>
-            <div className="pills" role="group" aria-label={`category for ${r.payee ?? "entry"}`}>
+            <div className="pills" role="group" aria-label={`Category for ${r.payee ?? "entry"}`}>
               {categories.filter((c) => c.kind === r.kind).map((c) => (
-                <button key={c.id} type="button" className="pill pill--outline" data-suggested={suggestions[r.id] === c.id || undefined} title={suggestions[r.id] === c.id ? "suggested by ai" : undefined} disabled={pending} onClick={() => run(() => categorizeAction(r.id, c.id, remember))}>{c.name}</button>
+                <button key={c.id} type="button" className="pill pill--outline" data-suggested={suggestions[r.id] === c.id || undefined} title={suggestions[r.id] === c.id ? "Suggested by AI" : undefined} disabled={pending} onClick={() => run(() => categorizeAction(r.id, c.id, remember))}>{c.name}</button>
               ))}
-              <select className="input input--sm" aria-label="make this a transfer" disabled={pending} value="" onChange={(e) => e.target.value && run(() => transferAction(r.id, e.target.value))}>
-                <option value="">transfer with…</option>
+              <select className="input input--sm" aria-label="Make this a transfer" disabled={pending} value="" onChange={(e) => e.target.value && run(() => transferAction(r.id, e.target.value))}>
+                <option value="">Transfer with…</option>
                 {accounts.filter((a) => a.id !== r.accountId && a.currency === r.currency).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
             </div>

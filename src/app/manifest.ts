@@ -1,20 +1,21 @@
 import type { MetadataRoute } from "next";
+import { BRAND } from "@/lib/brand";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "budget tracker",
-    short_name: "budget",
-    description: "Track what comes in, what goes out, and plan what comes next.",
+    name: BRAND.name,
+    short_name: BRAND.name,
+    description: BRAND.description,
     start_url: "/app",
     scope: "/",
     display: "standalone",
-    background_color: "#f4f1fb",
-    theme_color: "#6d28d9",
+    background_color: "#f6f8f9",
+    theme_color: "#0d7480",
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
       { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
       { src: "/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
-    shortcuts: [{ name: "quick add", url: "/app/quick" }, { name: "inbox", url: "/app/inbox" }],
+    shortcuts: [{ name: "Quick add", url: "/app/quick" }, { name: "Inbox", url: "/app/inbox" }],
   };
 }

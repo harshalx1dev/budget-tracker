@@ -14,7 +14,7 @@ export type NewWish = {
 export async function addWish(workspaceId: string, w: NewWish) {
   if (w.categoryId) {
     const [c] = await db.select({ id: categories.id }).from(categories).where(and(eq(categories.id, w.categoryId), eq(categories.workspaceId, workspaceId)));
-    if (!c) throw new Error("category not found");
+    if (!c) throw new Error("Category not found");
   }
   if (w.emiTenureMonths !== null && w.emiRatePct === null) w.emiRatePct = 0;
   const [row] = await db.insert(wishlistItems).values({ workspaceId, ...w, emiRatePct: w.emiRatePct === null ? null : String(w.emiRatePct) }).returning({ id: wishlistItems.id });
@@ -35,7 +35,7 @@ export const deleteWish = (workspaceId: string, id: string) => db.delete(wishlis
 
 export async function addLink(workspaceId: string, itemId: string, url: string, label: string | null, priceMinor: number | null) {
   const [it] = await db.select({ id: wishlistItems.id }).from(wishlistItems).where(and(eq(wishlistItems.id, itemId), eq(wishlistItems.workspaceId, workspaceId)));
-  if (!it) throw new Error("item not found");
+  if (!it) throw new Error("Item not found");
   await db.insert(wishlistLinks).values({ workspaceId, itemId, url, label, priceMinor });
 }
 

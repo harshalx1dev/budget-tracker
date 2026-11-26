@@ -9,7 +9,7 @@ import { tokenState } from "@/lib/mcp-token";
 import { hasKey, usageToday } from "@/server/ai/gateway";
 import { requireWorkspace } from "@/server/session";
 
-export const metadata = { title: "settings" };
+export const metadata = { title: "Settings" };
 
 async function SettingsLoader() {
   const { user, workspace } = await requireWorkspace();
@@ -17,44 +17,44 @@ async function SettingsLoader() {
   const endpoint = `${process.env.BETTER_AUTH_URL ?? "http://localhost:3000"}/api/mcp`;
   return (
     <div className="settle stack">
-      <h1>settings</h1>
+      <h1>Settings</h1>
       <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
-        <h2>account</h2>
+        <h2>Account</h2>
         <p>{user.name} <span className="label">{user.email}</span></p>
       </section>
       {user.role === "admin" && (
         <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
-          <h2>admin</h2>
-          <p><Link href="/app/admin" className="link">accounts and usage across the app</Link></p>
+          <h2>Admin</h2>
+          <p><Link href="/app/admin" className="link">Accounts and usage across the app</Link></p>
         </section>
       )}
       <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
-        <h2>ai</h2>
+        <h2>Ai</h2>
         <AiKeyForm connected={connected} usedToday={used} />
       </section>
       <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
-        <h2>connect an agent</h2>
+        <h2>Connect an agent</h2>
         <McpTokenCard endpoint={endpoint} tokens={tokens.map((t) => ({ id: t.id, name: t.name, prefix: t.prefix, write: t.scopes.includes("write"), state: tokenState(t), expiresAt: t.expiresAt?.toISOString() ?? null, lastUsedAt: t.lastUsedAt?.toISOString() ?? null }))} />
       </section>
       <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
-        <h2>bill reminders</h2>
+        <h2>Bill reminders</h2>
         <RemindersCard />
       </section>
       <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
-        <h2>export your data</h2>
+        <h2>Export your data</h2>
         <p className="label">Your data is yours. The CSV opens in any spreadsheet; the backup holds everything except passwords, keys and tokens.</p>
         <div className="inline-form">
-          <a className="btn btn--secondary" href="/app/export/transactions" download>transactions as csv</a>
-          <a className="btn btn--secondary" href="/app/export/backup" download>full backup as json</a>
+          <a className="btn btn--secondary" href="/app/export/transactions" download>Transactions as CSV</a>
+          <a className="btn btn--secondary" href="/app/export/backup" download>Full backup as json</a>
         </div>
       </section>
       <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
-        <h2>categories and rules</h2>
-        <p><Link href="/app/categories" className="link">manage categories and auto-categorise rules</Link></p>
+        <h2>Categories and rules</h2>
+        <p><Link href="/app/categories" className="link">Manage categories and auto-categorise rules</Link></p>
       </section>
       <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
-        <h2>budget</h2>
-        <p>{workspace.name} <span className="label">home currency {workspace.homeCurrency}</span></p>
+        <h2>Budget</h2>
+        <p>{workspace.name} <span className="label">Home currency {workspace.homeCurrency}</span></p>
       </section>
     </div>
   );

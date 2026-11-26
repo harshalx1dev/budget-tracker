@@ -34,8 +34,8 @@ async function ownsCategory(workspaceId: string, id: string) {
 
 export async function addRule(workspaceId: string, pattern: string, categoryId: string, source: "manual" | "learned" = "manual") {
   const p = normalizePayee(pattern);
-  if (p.length < 3) throw new Error("pattern needs at least 3 letters");
-  if (!(await ownsCategory(workspaceId, categoryId))) throw new Error("category not found");
+  if (p.length < 3) throw new Error("Pattern needs at least 3 letters");
+  if (!(await ownsCategory(workspaceId, categoryId))) throw new Error("Category not found");
   await db.insert(categoryRules).values({ workspaceId, pattern: p, categoryId, source }).onConflictDoUpdate({ target: [categoryRules.workspaceId, categoryRules.pattern], set: { categoryId, source } });
 }
 
@@ -74,8 +74,8 @@ export async function quickAdd(workspaceId: string, homeCurrency: string, input:
   const parsed = override ?? parseQuickAdd(input, accts.map((a) => ({ id: a.id, name: a.name, aliases: a.aliases })), opts.asOf ?? todayISO());
   if (!parsed.amount) throw new NoAmountError();
   const acct = accts.find((a) => a.id === parsed.accountId) ?? accts.find((a) => a.type === "cash") ?? accts[0];
-  if (!acct) throw new Error("add an account first");
-  if (acct.currency !== homeCurrency) throw new Error("quick-add works for home-currency accounts; use the full form");
+  if (!acct) throw new Error("Add an account first");
+  if (acct.currency !== homeCurrency) throw new Error("Quick-add works for home-currency accounts; use the full form");
   const amountMinor = Math.round(parsed.amount * 10 ** exponent(acct.currency));
   const categoryId = matchRule(await rulesFor(workspaceId), parsed.text);
   await db.insert(transactions).values({
@@ -90,9 +90,9 @@ export async function quickAdd(workspaceId: string, homeCurrency: string, input:
 
 export async function importStatement(workspaceId: string, homeCurrency: string, accountId: string, filename: string, rows: StatementRow[]) {
   const [acct] = await db.select().from(accounts).where(and(eq(accounts.id, accountId), eq(accounts.workspaceId, workspaceId)));
-  if (!acct) throw new Error("account not found");
-  if (acct.currency !== homeCurrency) throw new Error("statement import works for home-currency accounts for now");
-  if (!rows.length) throw new Error("no transactions found in that file");
+  if (!acct) throw new Error("Account not found");
+  if (acct.currency !== homeCurrency) throw new Error("Statement import works for home-currency accounts for now");
+  if (!rows.length) throw new Error("No transactions found in that file");
 
   const rules = await rulesFor(workspaceId);
   const exp = exponent(acct.currency);
@@ -184,9 +184,9 @@ export async function pendingCount(workspaceId: string) {
 
 /** Categorise one row; with `remember`, learn a rule from its payee and apply it to similar pending rows. */
 export async function categorize(workspaceId: string, id: string, categoryId: string, remember: boolean) {
-  if (!(await ownsCategory(workspaceId, categoryId))) throw new Error("category not found");
+  if (!(await ownsCategory(workspaceId, categoryId))) throw new Error("Category not found");
   const [tx] = await db.select().from(transactions).where(and(eq(transactions.id, id), eq(transactions.workspaceId, workspaceId)));
-  if (!tx) throw new Error("entry not found");
+  if (!tx) throw new Error("Entry not found");
   const ids = [id];
   if (remember) {
     const pattern = normalizePayee(tx.payee ?? "");
@@ -207,9 +207,9 @@ export async function categorize(workspaceId: string, id: string, categoryId: st
 export async function convertToTransfer(workspaceId: string, id: string, otherAccountId: string) {
   const [tx] = await db.select().from(transactions).where(and(eq(transactions.id, id), eq(transactions.workspaceId, workspaceId)));
   const [other] = await db.select().from(accounts).where(and(eq(accounts.id, otherAccountId), eq(accounts.workspaceId, workspaceId)));
-  if (!tx || !other) throw new Error("not found");
-  if (other.currency !== tx.currency) throw new Error("accounts use different currencies; add both legs by hand");
-  if (other.id === tx.accountId) throw new Error("pick a different account");
+  if (!tx || !other) throw new Error("Not found");
+  if (other.currency !== tx.currency) throw new Error("Accounts use different currencies; add both legs by hand");
+  if (other.id === tx.accountId) throw new Error("Pick a different account");
   const transferId = crypto.randomUUID();
   await db.transaction(async (t) => {
     await t.update(transactions).set({ transferId, categoryId: null, status: "confirmed" }).where(eq(transactions.id, id));
@@ -224,8 +224,8 @@ export async function createTransfer(workspaceId: string, fromId: string, toId: 
   const accts = await db.select().from(accounts).where(and(eq(accounts.workspaceId, workspaceId), inArray(accounts.id, [fromId, toId])));
   const from = accts.find((a) => a.id === fromId);
   const to = accts.find((a) => a.id === toId);
-  if (!from || !to || fromId === toId) throw new Error("pick two different accounts");
-  if (from.currency !== to.currency) throw new Error("accounts use different currencies; add both legs by hand");
+  if (!from || !to || fromId === toId) throw new Error("Pick two different accounts");
+  if (from.currency !== to.currency) throw new Error("Accounts use different currencies; add both legs by hand");
   const transferId = crypto.randomUUID();
   const base = { workspaceId, amountMinor, currency: from.currency, occurredOn: date, transferId, payee: "transfer", status: "confirmed" as const };
   await db.insert(transactions).values([{ ...base, accountId: fromId, kind: "expense" }, { ...base, accountId: toId, kind: "income" }]);
@@ -234,7 +234,7 @@ export async function createTransfer(workspaceId: string, fromId: string, toId: 
 /** Book the gap between the computed balance and the cash actually in hand. */
 export async function reconcileCash(workspaceId: string, accountId: string, actualMinor: number, date: string) {
   const acct = (await listAccounts(workspaceId)).find((a) => a.id === accountId);
-  if (!acct) throw new Error("account not found");
+  if (!acct) throw new Error("Account not found");
   const diff = actualMinor - acct.balanceMinor;
   if (diff === 0) return { diff: 0, currency: acct.currency };
   const kind = diff < 0 ? "expense" : "income";

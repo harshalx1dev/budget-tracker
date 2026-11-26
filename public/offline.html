@@ -3,17 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>offline</title>
+<title>Offline · Budggyy</title>
 <style>
-  :root { --paper: #f4f1fb; --ink: #1a1424; --muted: #5d5470; }
-  @media (prefers-color-scheme: dark) { :root { --paper: #0e0b17; --ink: #e8e2f5; --muted: #a89fc0; } }
-  body { margin: 0; min-height: 100dvh; display: grid; place-content: center; gap: 8px; padding: 24px; background: var(--paper); color: var(--ink); font-family: system-ui, sans-serif; }
-  h1 { margin: 0; font-weight: 500; letter-spacing: -0.03em; }
+  :root { --paper: #f6f8f9; --ink: #1f3038; --muted: #566870; --accent: #0d7480; }
+  @media (prefers-color-scheme: dark) { :root { --paper: #0b1115; --ink: #e8f0f3; --muted: #93a7af; --accent: #3bbccb; } }
+  body { margin: 0; min-height: 100dvh; display: grid; place-content: center; justify-items: center; gap: 10px; padding: 24px; background: var(--paper); color: var(--ink); font-family: system-ui, sans-serif; text-align: center; }
+  svg { width: 56px; height: 56px; }
+  h1 { margin: 0; font-weight: 600; letter-spacing: -0.02em; }
   p { margin: 0; color: var(--muted); }
 </style>
 </head>
 <body>
-<h1>you're offline</h1>
-<p>Reconnect and reload to see your budget.</p>
+<svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="18" fill="var(--accent)"/><path d="M24 13.5V47" fill="none" stroke="var(--paper)" stroke-width="6" stroke-linecap="round"/><circle cx="36" cy="37" r="10.5" fill="none" stroke="var(--paper)" stroke-width="6"/><circle cx="36" cy="37" r="2.6" fill="var(--paper)"/></svg>
+<h1>You're offline</h1>
+<p>Reconnect and reload to see your budget. Entries you add on the quick-add page still sync later.</p>
 </body>
 </html>

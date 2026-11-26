@@ -81,12 +81,12 @@ export async function monthSummary(workspaceId: string, homeCurrency: string, mo
 export async function createTransaction(workspaceId: string, t: NewTransaction, homeCurrency: string) {
   // The account (and category) must belong to this workspace; the currency follows the account.
   const [acct] = await db.select().from(accounts).where(and(eq(accounts.id, t.accountId), eq(accounts.workspaceId, workspaceId)));
-  if (!acct) throw new Error("account not found");
+  if (!acct) throw new Error("Account not found");
   if (t.categoryId) {
     const [c] = await db.select({ id: categories.id }).from(categories).where(and(eq(categories.id, t.categoryId), eq(categories.workspaceId, workspaceId)));
-    if (!c) throw new Error("category not found");
+    if (!c) throw new Error("Category not found");
   }
-  if (acct.currency !== homeCurrency && !t.fxRateToHome) throw new Error("exchange rate required");
+  if (acct.currency !== homeCurrency && !t.fxRateToHome) throw new Error("Exchange rate required");
   await db.insert(transactions).values({
     workspaceId,
     ...t,

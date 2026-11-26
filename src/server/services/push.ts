@@ -15,7 +15,7 @@ export type Sender = (sub: Sub, payload: string) => Promise<void>;
 /** The real sender. A 404 or 410 from the push service means the subscription is gone. */
 export const webPushSender: Sender = async (sub, payload) => {
   const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT } = process.env;
-  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY || !VAPID_SUBJECT) throw new Error("push is not configured on this server");
+  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY || !VAPID_SUBJECT) throw new Error("Push is not configured on this server");
   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
   await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, payload, { TTL: 6 * 3600 });
 };
@@ -44,8 +44,8 @@ async function deliver(subs: Sub[], digest: Digest, send: Sender) {
 /** A test notification to this user's own devices. */
 export async function sendTest(userId: string, send: Sender = webPushSender) {
   const subs = await db.select().from(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
-  if (!subs.length) throw new Error("turn reminders on for this device first");
-  return deliver(subs, { title: "budget", body: "Reminders are on for this device.", url: "/app/plan/commitments", tag: "test" }, send);
+  if (!subs.length) throw new Error("Turn reminders on for this device first");
+  return deliver(subs, { title: "Budget", body: "Reminders are on for this device.", url: "/app/plan/commitments", tag: "test" }, send);
 }
 
 /**

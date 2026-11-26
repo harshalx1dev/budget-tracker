@@ -4,7 +4,7 @@ type Row = { month: string; income: number; expense: number };
 
 const compact = (minor: number, cur: string) =>
   new Intl.NumberFormat(cur === "INR" ? "en-IN" : "en-US", { notation: "compact", maximumFractionDigits: 1 }).format(minor / 100);
-const label = (ym: string) => new Date(`${ym}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "short", timeZone: "UTC" }).toLowerCase();
+const label = (ym: string) => new Date(`${ym}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "short", timeZone: "UTC" });
 
 /** Income against spending per month, as paired bars. The table on the page carries the exact figures. */
 export function MonthlyChart({ rows, currency }: { rows: Row[]; currency: string }) {
@@ -30,7 +30,7 @@ export function MonthlyChart({ rows, currency }: { rows: Row[]; currency: string
           );
         })}
       </svg>
-      <figcaption className="legend"><span><i className="swatch swatch--income" /> income</span><span><i className="swatch swatch--spend" /> spending</span></figcaption>
+      <figcaption className="legend"><span><i className="swatch swatch--income" /> Income</span><span><i className="swatch swatch--spend" /> Spending</span></figcaption>
     </figure>
   );
 }

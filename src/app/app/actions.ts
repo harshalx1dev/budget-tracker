@@ -25,19 +25,19 @@ const txSchema = z.object({
 export async function addTransaction(_: FormState, fd: FormData): Promise<FormState> {
   const { workspace } = await requireWorkspace();
   const p = txSchema.safeParse(Object.fromEntries(fd));
-  if (!p.success) return { error: "check the form and try again" };
+  if (!p.success) return { error: "Check the form and try again" };
   const { amount, fx, ...rest } = p.data;
-  if (fx && !(Number(fx) > 0)) return { error: "exchange rate must be a positive number" };
+  if (fx && !(Number(fx) > 0)) return { error: "Exchange rate must be a positive number" };
   try {
     // Account currency is resolved in the service; the amount's exponent follows it.
     const acct = (await listAccounts(workspace.id)).find((a) => a.id === rest.accountId);
-    if (!acct) return { error: "account not found" };
+    if (!acct) return { error: "Account not found" };
     const amountMinor = toMinor(amount, acct.currency);
-    if (!amountMinor) return { error: "enter an amount above zero" };
+    if (!amountMinor) return { error: "Enter an amount above zero" };
     await createTransaction(workspace.id, { ...rest, amountMinor, fxRateToHome: fx }, workspace.homeCurrency);
     await autoMatch(workspace.id);
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "could not save" };
+    return { error: e instanceof Error ? e.message : "Could not save" };
   }
   revalidatePath("/app", "layout");
   return { ok: true };
@@ -60,10 +60,10 @@ const accountSchema = z.object({
 export async function addAccount(_: FormState, fd: FormData): Promise<FormState> {
   const { workspace } = await requireWorkspace();
   const p = accountSchema.safeParse(Object.fromEntries(fd));
-  if (!p.success) return { error: "check the form and try again" };
+  if (!p.success) return { error: "Check the form and try again" };
   const { opening, currency, ...rest } = p.data;
   const openingBalanceMinor = opening ? toMinor(opening, currency) : 0;
-  if (openingBalanceMinor === null) return { error: "opening balance must be a number" };
+  if (openingBalanceMinor === null) return { error: "Opening balance must be a number" };
   await createAccount(workspace.id, { ...rest, currency, openingBalanceMinor });
   revalidatePath("/app", "layout");
   return { ok: true };

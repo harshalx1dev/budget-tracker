@@ -14,13 +14,13 @@ export function DeleteButton({ id }: { id: string }) {
       className="icon-btn"
       data-armed={armed}
       disabled={pending}
-      aria-label={armed ? "confirm delete" : "delete entry"}
+      aria-label={armed ? "Confirm delete" : "Delete entry"}
       onClick={() => {
         if (!armed) { setArmed(true); setTimeout(() => setArmed(false), 3000); return; }
         start(() => removeTransaction(id));
       }}
     >
-      {armed ? <span className="label">sure?</span> : <Trash2 size={16} aria-hidden />}
+      {armed ? <span className="label">Sure?</span> : <Trash2 size={16} aria-hidden />}
     </button>
   );
 }

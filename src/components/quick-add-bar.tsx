@@ -32,8 +32,8 @@ export function QuickAddBar() {
           const r = await send(item);
           // The server answered (added, already added, or refused for a real reason): either way it is done with.
           setWaiting(dequeue(s, item.ref).length);
-          if (r.error) setMsg({ text: `could not add "${item.text}": ${r.error}`, error: true });
-          else setMsg({ text: `synced "${item.text}"` });
+          if (r.error) setMsg({ text: `Could not add "${item.text}": ${r.error}`, error: true });
+          else setMsg({ text: `Synced "${item.text}"` });
         } catch (e) {
           if (isNetworkError(e)) break;
           setWaiting(dequeue(s, item.ref).length);
@@ -52,30 +52,30 @@ export function QuickAddBar() {
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const text = String(new FormData(e.currentTarget).get("q") ?? "").trim();
-    if (!text) return setMsg({ text: "type something like: chai 20 cash", error: true });
+    if (!text) return setMsg({ text: "Type something like: chai 20 cash", error: true });
     const item: Queued = { ref: crypto.randomUUID(), text, asOf: localDay(), at: Date.now() };
-    const queue = () => { const s = store(); if (s) setWaiting(enqueue(s, item).length); setMsg({ text: "saved on this device, it will sync when you are back online" }); form.current?.reset(); };
+    const queue = () => { const s = store(); if (s) setWaiting(enqueue(s, item).length); setMsg({ text: "Saved on this device, it will sync when you are back online" }); form.current?.reset(); };
     if (!navigator.onLine) return queue();
     start(async () => {
       try {
         const r = await send(item);
         if (r.error) return setMsg({ text: r.error, error: true });
-        setMsg({ text: r.message ?? "added" });
+        setMsg({ text: r.message ?? "Added" });
         form.current?.reset();
         void flush();
       } catch (err) {
-        if (isNetworkError(err)) queue(); else setMsg({ text: "something went wrong, try again", error: true });
+        if (isNetworkError(err)) queue(); else setMsg({ text: "Something went wrong, try again", error: true });
       }
     });
   }
 
   return (
     <form ref={form} onSubmit={submit} className="quick" aria-busy={pending}>
-      <label className="visually-hidden" htmlFor="q">quick add</label>
+      <label className="visually-hidden" htmlFor="q">Quick add</label>
       <input id="q" name="q" className="input" autoComplete="off" placeholder="swiggy 450 upi yesterday" />
-      <button className="btn btn--primary" disabled={pending}><Zap size={16} aria-hidden /> add</button>
+      <button className="btn btn--primary" disabled={pending}><Zap size={16} aria-hidden /> Add</button>
       <p className="quick__msg label" role="status">
-        {msg ? (msg.error ? <span className="error">{msg.text}</span> : msg.text) : "amount, a word for the account, and a day. start with + for income."}
+        {msg ? (msg.error ? <span className="error">{msg.text}</span> : msg.text) : "Amount, a word for the account, and a day. Start with + for income."}
         {waiting > 0 ? ` ${waiting} waiting to sync.` : ""}
       </p>
     </form>

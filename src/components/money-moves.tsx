@@ -15,10 +15,10 @@ export function TransferForm({ accounts }: { accounts: Acct[] }) {
   useEffect(() => { if (s.message) ref.current?.reset(); }, [s]);
   return (
     <form ref={ref} action={action} className="well tx-form" aria-busy={pending}>
-      <label className="field"><span className="label">from</span><select name="from" className="input">{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
-      <label className="field"><span className="label">to</span><select name="to" className="input" defaultValue={accounts[1]?.id}>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
-      <label className="field"><span className="label">amount</span><input name="amount" inputMode="decimal" required className="input" /></label>
-      <div className="tx-form__end"><Status s={s} /><button className="btn btn--secondary" disabled={pending || accounts.length < 2}>record transfer</button></div>
+      <label className="field"><span className="label">From</span><select name="from" className="input">{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
+      <label className="field"><span className="label">To</span><select name="to" className="input" defaultValue={accounts[1]?.id}>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
+      <label className="field"><span className="label">Amount</span><input name="amount" inputMode="decimal" required className="input" /></label>
+      <div className="tx-form__end"><Status s={s} /><button className="btn btn--secondary" disabled={pending || accounts.length < 2}>Record transfer</button></div>
     </form>
   );
 }
@@ -30,9 +30,9 @@ export function ReconcileForm({ accounts }: { accounts: Acct[] }) {
   const cash = accounts.filter((a) => a.type === "cash" || a.type === "wallet");
   return (
     <form ref={ref} action={action} className="well tx-form" aria-busy={pending}>
-      <label className="field"><span className="label">account</span><select name="account" className="input">{cash.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
-      <label className="field"><span className="label">how much do you actually have</span><input name="actual" inputMode="decimal" required className="input" /></label>
-      <div className="tx-form__end"><Status s={s} /><button className="btn btn--secondary" disabled={pending || !cash.length}>reconcile</button></div>
+      <label className="field"><span className="label">Account</span><select name="account" className="input">{cash.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
+      <label className="field"><span className="label">How much do you actually have</span><input name="actual" inputMode="decimal" required className="input" /></label>
+      <div className="tx-form__end"><Status s={s} /><button className="btn btn--secondary" disabled={pending || !cash.length}>Reconcile</button></div>
     </form>
   );
 }

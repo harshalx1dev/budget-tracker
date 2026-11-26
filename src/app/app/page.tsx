@@ -29,16 +29,16 @@ async function OverviewLoader() {
   const balance = accounts.filter((a) => a.currency === home).reduce((s, a) => s + a.balanceMinor, 0);
   const hasForeign = accounts.some((a) => a.currency !== home);
   const stats = [
-    { label: "balance", value: formatMinor(balance, home) },
-    { label: "safe to spend", value: formatMinor(sts.safe, home), note: sts.safe > 0 ? `${formatMinor(sts.perDay, home)} a day until ${sts.incomeKnown && sts.nextIncome ? "payday" : "month end"}` : "nothing spare yet" },
-    { label: "in this month", value: formatMinor(month.income, home) },
-    { label: "out this month", value: formatMinor(month.expense, home) },
+    { label: "Balance", value: formatMinor(balance, home) },
+    { label: "Safe to spend", value: formatMinor(sts.safe, home), note: sts.safe > 0 ? `${formatMinor(sts.perDay, home)} a day until ${sts.incomeKnown && sts.nextIncome ? "payday" : "month end"}` : "Nothing spare yet" },
+    { label: "In this month", value: formatMinor(month.income, home) },
+    { label: "Out this month", value: formatMinor(month.expense, home) },
   ];
 
   return (
     <div className="settle stack">
-      <h1>overview</h1>
-      <section className="stats" aria-label="summary">
+      <h1>Overview</h1>
+      <section className="stats" aria-label="Summary">
         {stats.map((s) => (
           <div key={s.label} className="stat well raised">
             <p className="label">{s.label}</p>
@@ -47,22 +47,22 @@ async function OverviewLoader() {
           </div>
         ))}
       </section>
-      {hasForeign && <p className="label">balance counts {home} accounts only until exchange rates arrive.</p>}
+      {hasForeign && <p className="label">Balance counts {home} accounts only until exchange rates arrive.</p>}
       <section aria-labelledby="add-h" className="stack-sm">
-        <h2 id="add-h">quick add</h2>
+        <h2 id="add-h">Quick add</h2>
         <QuickAddBar />
         <details className="more">
-          <summary className="pill">full form</summary>
+          <summary className="pill">Full form</summary>
         <TransactionForm accounts={accounts} categories={categories} homeCurrency={home} />
         </details>
       </section>
       <section className="well stack-sm" style={{ padding: "var(--space-lg)" }} aria-labelledby="sum-h">
-        <h2 id="sum-h">this month in words</h2>
+        <h2 id="sum-h">This month in words</h2>
         {summary ? <p className="prose-ai">{summary.body}</p> : <p className="label">A short AI write-up of how the month is going, built from your own totals.</p>}
-        <AiButton label={summary ? "refresh" : "write this month up"} run={summariseMonthAction} enabled={Boolean(key)} />
+        <AiButton label={summary ? "Refresh" : "Write this month up"} run={summariseMonthAction} enabled={Boolean(key)} />
       </section>
       <section className="well" aria-labelledby="ledger-h">
-        <h2 id="ledger-h" className="well__head">recent</h2>
+        <h2 id="ledger-h" className="well__head">Recent</h2>
         <LedgerTable rows={recent} empty="Add your first entry above. Income and spending land here, newest first." />
       </section>
     </div>

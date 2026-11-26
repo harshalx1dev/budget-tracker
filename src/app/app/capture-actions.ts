@@ -15,12 +15,12 @@ import type { StatementRow } from "@/lib/statement";
 export type CaptureState = { error?: string; message?: string };
 
 const refresh = () => revalidatePath("/app", "layout");
-const fail = (e: unknown): CaptureState => ({ error: e instanceof Error ? e.message : "something went wrong" });
+const fail = (e: unknown): CaptureState => ({ error: e instanceof Error ? e.message : "Something went wrong" });
 
 export async function quickAddAction(_: CaptureState, fd: FormData): Promise<CaptureState> {
   const { user, workspace } = await requireWorkspace();
   const input = String(fd.get("q") ?? "").trim().slice(0, 200);
-  if (!input) return { error: "type something like: chai 20 cash" };
+  if (!input) return { error: "Type something like: chai 20 cash" };
   // An entry queued offline carries the day it was typed and a key, so a retry never adds it twice.
   const ref = String(fd.get("ref") ?? "");
   const asOf = String(fd.get("asOf") ?? "");
@@ -38,8 +38,8 @@ export async function quickAddAction(_: CaptureState, fd: FormData): Promise<Cap
       r = await quickAdd(workspace.id, workspace.homeCurrency, input, await parseEntryWithAi(user.id, workspace.id, input), opts);
     }
     refresh();
-    if (r.duplicate) return { message: "already added" };
-    return { message: `added ${formatMinor(r.amountMinor, r.currency)} to ${r.account}${r.text ? ` for ${r.text}` : ""}${r.categorised ? "" : ", needs a category in the inbox"}` };
+    if (r.duplicate) return { message: "Already added" };
+    return { message: `Added ${formatMinor(r.amountMinor, r.currency)} to ${r.account}${r.text ? ` for ${r.text}` : ""}${r.categorised ? "" : ", needs a category in the inbox"}` };
   } catch (e) { return fail(e); }
 }
 
@@ -54,7 +54,7 @@ const rowSchema = z.object({
 export async function importAction(accountId: string, filename: string, rows: StatementRow[]): Promise<CaptureState & { added?: number; merged?: number; duplicates?: number }> {
   const { workspace } = await requireWorkspace();
   const parsed = z.array(rowSchema).max(20000).safeParse(rows);
-  if (!parsed.success) return { error: "that file has rows the importer could not read" };
+  if (!parsed.success) return { error: "That file has rows the importer could not read" };
   try {
     const r = await importStatement(workspace.id, workspace.homeCurrency, accountId, filename, parsed.data);
     refresh();
@@ -73,7 +73,7 @@ export async function categorizeAction(id: string, categoryId: string, remember:
 
 export async function transferAction(id: string, otherAccountId: string): Promise<CaptureState> {
   const { workspace } = await requireWorkspace();
-  try { await convertToTransfer(workspace.id, id, otherAccountId); refresh(); return { message: "moved to a transfer" }; } catch (e) { return fail(e); }
+  try { await convertToTransfer(workspace.id, id, otherAccountId); refresh(); return { message: "Moved to a transfer" }; } catch (e) { return fail(e); }
 }
 
 export async function newTransferAction(_: CaptureState, fd: FormData): Promise<CaptureState> {
@@ -82,8 +82,8 @@ export async function newTransferAction(_: CaptureState, fd: FormData): Promise<
   const accts = await listAccounts(workspace.id);
   const cur = accts.find((a) => a.id === from)?.currency;
   const amount = cur ? toMinor(String(fd.get("amount") ?? ""), cur) : null;
-  if (!amount) return { error: "enter an amount above zero" };
-  try { await createTransfer(workspace.id, from, to, amount, String(fd.get("date") || todayISO())); refresh(); return { message: "transfer recorded" }; } catch (e) { return fail(e); }
+  if (!amount) return { error: "Enter an amount above zero" };
+  try { await createTransfer(workspace.id, from, to, amount, String(fd.get("date") || todayISO())); refresh(); return { message: "Transfer recorded" }; } catch (e) { return fail(e); }
 }
 
 export async function reconcileAction(_: CaptureState, fd: FormData): Promise<CaptureState> {
@@ -91,7 +91,7 @@ export async function reconcileAction(_: CaptureState, fd: FormData): Promise<Ca
   const id = String(fd.get("account"));
   const acct = (await listAccounts(workspace.id)).find((a) => a.id === id);
   const raw = Number(String(fd.get("actual") ?? "").replace(/,/g, ""));
-  if (!acct || !Number.isFinite(raw) || raw < 0) return { error: "enter the amount you actually have" };
+  if (!acct || !Number.isFinite(raw) || raw < 0) return { error: "Enter the amount you actually have" };
   try {
     const r = await reconcileCash(workspace.id, id, Math.round(raw * 10 ** exponent(acct.currency)), todayISO());
     refresh();
@@ -102,10 +102,10 @@ export async function reconcileAction(_: CaptureState, fd: FormData): Promise<Ca
 export async function addCategoryAction(_: CaptureState, fd: FormData): Promise<CaptureState> {
   const { workspace } = await requireWorkspace();
   const p = z.object({ name: z.string().trim().min(1).max(40), kind: z.enum(["income", "expense"]) }).safeParse(Object.fromEntries(fd));
-  if (!p.success) return { error: "enter a name" };
+  if (!p.success) return { error: "Enter a name" };
   await addCategory(workspace.id, p.data.name, p.data.kind);
   refresh();
-  return { message: "category added" };
+  return { message: "Category added" };
 }
 
 export async function deleteCategoryAction(id: string) {
@@ -116,7 +116,7 @@ export async function deleteCategoryAction(id: string) {
 
 export async function addRuleAction(_: CaptureState, fd: FormData): Promise<CaptureState> {
   const { workspace } = await requireWorkspace();
-  try { await addRule(workspace.id, String(fd.get("pattern") ?? ""), String(fd.get("categoryId") ?? "")); refresh(); return { message: "rule saved" }; } catch (e) { return fail(e); }
+  try { await addRule(workspace.id, String(fd.get("pattern") ?? ""), String(fd.get("categoryId") ?? "")); refresh(); return { message: "Rule saved" }; } catch (e) { return fail(e); }
 }
 
 export async function deleteRuleAction(id: string) {
@@ -131,11 +131,11 @@ const MAX_PDF = 4 * 1024 * 1024;
 export async function parsePdfAction(fd: FormData): Promise<{ error?: string; table?: string[][] }> {
   await requireWorkspace();
   const file = fd.get("file");
-  if (!(file instanceof File) || file.size === 0) return { error: "choose a PDF file" };
-  if (file.size > MAX_PDF) return { error: "that PDF is over 4 MB" };
+  if (!(file instanceof File) || file.size === 0) return { error: "Choose a PDF file" };
+  if (file.size > MAX_PDF) return { error: "That PDF is over 4 MB" };
   const bytes = new Uint8Array(await file.arrayBuffer());
-  if (String.fromCharCode(...bytes.slice(0, 5)) !== "%PDF-") return { error: "that does not look like a PDF" };
-  try { return { table: await pdfToTable(bytes) }; } catch (e) { return { error: e instanceof Error ? e.message : "could not read that PDF" }; }
+  if (String.fromCharCode(...bytes.slice(0, 5)) !== "%PDF-") return { error: "That does not look like a PDF" };
+  try { return { table: await pdfToTable(bytes) }; } catch (e) { return { error: e instanceof Error ? e.message : "Could not read that PDF" }; }
 }
 
 /** Ask the AI to suggest categories for the inbox. Nothing is saved; the page shows them as one-tap choices. */

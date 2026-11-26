@@ -5,7 +5,7 @@ import { db, schema } from "@/server/db";
 import { requireAdmin } from "@/server/session";
 import { formatDayYear } from "@/lib/dates";
 
-export const metadata = { title: "admin" };
+export const metadata = { title: "Admin" };
 
 const { aiUsage, mcpCalls, mcpTokens, pushSubscriptions, session, transactions, user, workspaces } = schema;
 const ago = (days: number) => new Date(Date.now() - days * 86_400_000);
@@ -38,19 +38,19 @@ async function AdminLoader() {
 
   return (
     <div className="settle stack">
-      <h1>admin</h1>
+      <h1>Admin</h1>
       <p className="label">You see accounts and usage totals only, never anyone&apos;s entries.</p>
 
-      <section className="stats" aria-label="totals">
+      <section className="stats" aria-label="Totals">
         {stats.map(([label, value]) => <div key={label} className="stat well raised"><p className="label">{label}</p><p className="figure">{value}</p></div>)}
       </section>
 
       <section className="stack-sm" aria-labelledby="ai-h">
-        <h2 id="ai-h">ai use, last 7 days</h2>
-        {ai.length === 0 ? <div className="well empty"><h3>no ai calls yet</h3><p>Calls show here by feature once people use them.</p></div> : (
+        <h2 id="ai-h">Ai use, last 7 days</h2>
+        {ai.length === 0 ? <div className="well empty"><h3>No AI calls yet</h3><p>Calls show here by feature once people use them.</p></div> : (
           <div className="well table-wrap">
             <table className="ledger">
-              <thead><tr><th>feature</th><th className="num">calls</th><th className="num">failed</th><th className="num">on the app key</th><th className="num">tokens</th></tr></thead>
+              <thead><tr><th>Feature</th><th className="num">Calls</th><th className="num">Failed</th><th className="num">On the app key</th><th className="num">Tokens</th></tr></thead>
               <tbody>{ai.map((a) => <tr key={a.feature}><td>{a.feature.replace(/_/g, " ")}</td><td className="num">{a.calls}</td><td className="num">{a.failed}</td><td className="num">{a.onAppKey}</td><td className="num">{a.tokens.toLocaleString("en-IN")}</td></tr>)}</tbody>
             </table>
           </div>
@@ -58,11 +58,11 @@ async function AdminLoader() {
       </section>
 
       <section className="stack-sm" aria-labelledby="mcp-h">
-        <h2 id="mcp-h">agent calls, last 7 days</h2>
-        {mcp.length === 0 ? <div className="well empty"><h3>no agent calls yet</h3><p>Calls to the MCP endpoint show here by tool.</p></div> : (
+        <h2 id="mcp-h">Agent calls, last 7 days</h2>
+        {mcp.length === 0 ? <div className="well empty"><h3>No agent calls yet</h3><p>Calls to the MCP endpoint show here by tool.</p></div> : (
           <div className="well table-wrap">
             <table className="ledger">
-              <thead><tr><th>tool</th><th className="num">calls</th><th className="num">failed</th></tr></thead>
+              <thead><tr><th>Tool</th><th className="num">Calls</th><th className="num">Failed</th></tr></thead>
               <tbody>{mcp.map((m) => <tr key={m.tool}><td>{m.tool.replace(/_/g, " ")}</td><td className="num">{m.calls}</td><td className="num">{m.failed}</td></tr>)}</tbody>
             </table>
           </div>
@@ -70,13 +70,13 @@ async function AdminLoader() {
       </section>
 
       <section className="stack-sm" aria-labelledby="people-h">
-        <h2 id="people-h">people</h2>
+        <h2 id="people-h">People</h2>
         <div className="well table-wrap">
           <table className="ledger">
-            <thead><tr><th>name</th><th>email</th><th>role</th><th>joined</th><th>last seen</th></tr></thead>
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Last seen</th></tr></thead>
             <tbody>
               {people.map((p) => (
-                <tr key={p.id}><td>{p.name}</td><td>{p.email}</td><td>{p.role}</td><td>{formatDayYear(p.joined.toISOString().slice(0, 10))}</td><td>{p.seen ? formatDayYear(new Date(p.seen).toISOString().slice(0, 10)) : "never"}</td></tr>
+                <tr key={p.id}><td>{p.name}</td><td>{p.email}</td><td className="cap">{p.role}</td><td>{formatDayYear(p.joined.toISOString().slice(0, 10))}</td><td>{p.seen ? formatDayYear(new Date(p.seen).toISOString().slice(0, 10)) : "Never"}</td></tr>
               ))}
             </tbody>
           </table>

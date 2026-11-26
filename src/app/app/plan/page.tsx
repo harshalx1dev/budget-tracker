@@ -8,9 +8,9 @@ import { forecast, safeToSpend } from "@/server/services/planner";
 import { formatMinor } from "@/lib/money";
 import { formatDay } from "@/lib/dates";
 
-export const metadata = { title: "plan" };
+export const metadata = { title: "Plan" };
 
-const monthLabel = (ym: string) => new Date(`${ym}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "short", year: "numeric", timeZone: "UTC" }).toLowerCase();
+const monthLabel = (ym: string) => new Date(`${ym}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "short", year: "numeric", timeZone: "UTC" });
 
 async function ForecastLoader() {
   const { workspace } = await requireWorkspace();
@@ -20,22 +20,22 @@ async function ForecastLoader() {
 
   return (
     <div className="settle stack">
-      <h1>plan</h1>
+      <h1>Plan</h1>
 
       <section className="stack-sm" aria-labelledby="sts-h">
-        <h2 id="sts-h">safe to spend</h2>
+        <h2 id="sts-h">Safe to spend</h2>
         <div className="well sts">
           <div>
-            <p className="label">until {sts.incomeKnown && sts.nextIncome ? `payday on ${formatDay(sts.nextIncome)}` : "the end of the month"}</p>
+            <p className="label">Until {sts.incomeKnown && sts.nextIncome ? `payday on ${formatDay(sts.nextIncome)}` : "the end of the month"}</p>
             <p className="figure" data-negative={sts.safe < 0}>{formatMinor(sts.safe, home)}</p>
-            <p className="label">{sts.safe > 0 ? `about ${formatMinor(sts.perDay, home)} a day for ${sts.days} day${sts.days === 1 ? "" : "s"}` : "nothing spare until the next payday"}</p>
+            <p className="label">{sts.safe > 0 ? `about ${formatMinor(sts.perDay, home)} a day for ${sts.days} day${sts.days === 1 ? "" : "s"}` : "Nothing spare until the next payday"}</p>
           </div>
-          <table className="ledger sts__break" aria-label="how this is worked out">
+          <table className="ledger sts__break" aria-label="How this is worked out">
             <tbody>
-              <tr><td>in your accounts</td><td className="num">{formatMinor(sts.balance, home)}</td></tr>
-              <tr><td>bills and emis due before then</td><td className="num">{formatMinor(-sts.dueOutflows, home)}</td></tr>
-              <tr><td>set aside for goals</td><td className="num">{formatMinor(-sts.goalSetAside, home)}</td></tr>
-              <tr><td>your buffer</td><td className="num">{formatMinor(-sts.buffer, home)}</td></tr>
+              <tr><td>In your accounts</td><td className="num">{formatMinor(sts.balance, home)}</td></tr>
+              <tr><td>Bills and EMIs due before then</td><td className="num">{formatMinor(-sts.dueOutflows, home)}</td></tr>
+              <tr><td>Set aside for goals</td><td className="num">{formatMinor(-sts.goalSetAside, home)}</td></tr>
+              <tr><td>Your buffer</td><td className="num">{formatMinor(-sts.buffer, home)}</td></tr>
             </tbody>
           </table>
         </div>
@@ -48,7 +48,7 @@ async function ForecastLoader() {
       </section>
 
       <section className="stack-sm" aria-labelledby="fc-h">
-        <h2 id="fc-h">next six months</h2>
+        <h2 id="fc-h">Next six months</h2>
         {!fc.incomeKnown && <p className="label">The forecast has no income yet, so it only shows money going out. <Link href="/app/plan/commitments" className="link">Add your salary</Link>.</p>}
         <div className="well" style={{ padding: "var(--space-lg)" }}>
           <ForecastChart rows={fc.rows} currency={home} />
@@ -56,7 +56,7 @@ async function ForecastLoader() {
         </div>
         <div className="well table-wrap">
           <table className="ledger">
-            <thead><tr><th>month</th><th className="num">starts</th><th className="num">income</th><th className="num">bills and emis</th><th className="num">everyday spending</th><th className="num">ends</th></tr></thead>
+            <thead><tr><th>Month</th><th className="num">Starts</th><th className="num">Income</th><th className="num">Bills and EMIs</th><th className="num">Everyday spending</th><th className="num">Ends</th></tr></thead>
             <tbody>
               {fc.rows.map((r) => (
                 <tr key={r.month}>

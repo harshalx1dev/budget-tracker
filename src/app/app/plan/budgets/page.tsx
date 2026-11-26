@@ -7,7 +7,7 @@ import { budgetStatus } from "@/server/services/planner";
 import { formatMinor } from "@/lib/money";
 import { thisMonth } from "@/lib/dates";
 
-export const metadata = { title: "budgets" };
+export const metadata = { title: "Budgets" };
 
 async function BudgetsLoader() {
   const { workspace } = await requireWorkspace();
@@ -19,13 +19,13 @@ async function BudgetsLoader() {
 
   return (
     <div className="settle stack">
-      <h1>budgets</h1>
+      <h1>Budgets</h1>
       <p className="lead">A monthly limit per category. Spending counts every expense in the category, including bills and EMIs, and transfers never count.</p>
       <BudgetForm categories={expense} />
       {status.length === 0 ? (
-        <div className="well empty"><h3>no budgets yet</h3><p>Pick a category above and give it a monthly limit. The forecast uses it for your everyday spending.</p></div>
+        <div className="well empty"><h3>No budgets yet</h3><p>Pick a category above and give it a monthly limit. The forecast uses it for your everyday spending.</p></div>
       ) : (
-        <section className="stack-sm" aria-label="this month">
+        <section className="stack-sm" aria-label="This month">
           <p className="label">This month: {formatMinor(totalSpent, home)} spent of {formatMinor(totalLimit, home)} budgeted.</p>
           <ul className="bars">
             {status.map((b) => {
@@ -36,7 +36,7 @@ async function BudgetsLoader() {
                   <div className="bar__head">
                     <p>{b.category}{b.rollover ? <span className="label"> carries over</span> : null}</p>
                     <p className="num">{formatMinor(b.spent, home)} of {formatMinor(b.available, home)}</p>
-                    <RemoveButton kind="budget" id={b.id} label={`remove budget for ${b.category}`} />
+                    <RemoveButton kind="budget" id={b.id} label={`Remove budget for ${b.category}`} />
                   </div>
                   <div className="bar__track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={`${b.category} spent`}>
                     <div className="bar__fill" data-over={over} style={{ transform: `scaleX(${pct / 100})` }} />

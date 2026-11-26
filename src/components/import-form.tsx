@@ -13,9 +13,9 @@ type Acct = { id: string; name: string; currency: string };
 type Parsed = { filename: string; header: string[]; table: string[][]; headerIdx: number; mapping: Mapping | null };
 
 const FIELDS: { key: keyof Mapping; label: string; optional?: boolean }[] = [
-  { key: "date", label: "date" }, { key: "narration", label: "description" },
-  { key: "debit", label: "debit (money out)", optional: true }, { key: "credit", label: "credit (money in)", optional: true },
-  { key: "amount", label: "single amount", optional: true }, { key: "drCr", label: "dr/cr flag", optional: true }, { key: "ref", label: "reference", optional: true },
+  { key: "date", label: "Date" }, { key: "narration", label: "Description" },
+  { key: "debit", label: "Debit (money out)", optional: true }, { key: "credit", label: "Credit (money in)", optional: true },
+  { key: "amount", label: "Single amount", optional: true }, { key: "drCr", label: "Dr/cr flag", optional: true }, { key: "ref", label: "Reference", optional: true },
 ];
 
 export function ImportForm({ accounts }: { accounts: Acct[] }) {
@@ -26,7 +26,7 @@ export function ImportForm({ accounts }: { accounts: Acct[] }) {
 
   function load(table: string[][], filename: string) {
     const headerIdx = findHeaderRow(table);
-    if (headerIdx < 0) return setMsg({ error: "could not find the transaction table in that file" }), setP(null);
+    if (headerIdx < 0) return setMsg({ error: "Could not find the transaction table in that file" }), setP(null);
     setP({ filename, header: table[headerIdx], table, headerIdx, mapping: guessMapping(table[headerIdx]) });
   }
 
@@ -45,7 +45,7 @@ export function ImportForm({ accounts }: { accounts: Acct[] }) {
     Papa.parse<string[]>(file, {
       skipEmptyLines: true,
       complete: (res) => load(res.data, file.name),
-      error: () => setMsg({ error: "could not read that file" }),
+      error: () => setMsg({ error: "Could not read that file" }),
     });
   }
 
@@ -56,25 +56,25 @@ export function ImportForm({ accounts }: { accounts: Acct[] }) {
   return (
     <div className="stack">
       <div className="well tx-form">
-        <label className="field"><span className="label">statement file (csv or pdf)</span><input type="file" accept=".csv,text/csv,.pdf,application/pdf" className="input" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} /></label>
-        <label className="field"><span className="label">import into</span>
+        <label className="field"><span className="label">Statement file (CSV or PDF)</span><input type="file" accept=".csv,text/csv,.pdf,application/pdf" className="input" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} /></label>
+        <label className="field"><span className="label">Import into</span>
           <select className="input" value={accountId} onChange={(e) => setAccountId(e.target.value)}>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name} ({a.currency})</option>)}</select>
         </label>
       </div>
       {msg?.error && <p role="alert" className="error">{msg.error}</p>}
       {msg?.added !== undefined && (
         <p role="status" className="well" style={{ padding: "var(--space-lg)" }}>
-          added {msg.added} new{msg.merged ? `, matched ${msg.merged} to entries you had already added` : ""}, skipped {msg.duplicates} already imported. <Link href="/app/inbox" className="link">review the inbox</Link>
+          added {msg.added} new{msg.merged ? `, matched ${msg.merged} to entries you had already added` : ""}, skipped {msg.duplicates} already imported. <Link href="/app/inbox" className="link">Review the inbox</Link>
         </p>
       )}
       {p && (
-        <section className="well stack-sm" style={{ padding: "var(--space-lg)" }} aria-label="column mapping and preview">
-          <h2>check the columns</h2>
+        <section className="well stack-sm" style={{ padding: "var(--space-lg)" }} aria-label="Column mapping and preview">
+          <h2>Check the columns</h2>
           <div className="tx-form" style={{ padding: 0 }}>
             {FIELDS.map((f) => (
               <label key={f.key} className="field"><span className="label">{f.label}</span>
                 <select className="input" value={p.mapping?.[f.key] ?? ""} onChange={(e) => setField(f.key, e.target.value)}>
-                  {f.optional && <option value="">not used</option>}
+                  {f.optional && <option value="">Not used</option>}
                   {p.header.map((h, i) => <option key={i} value={i}>{h || `column ${i + 1}`}</option>)}
                 </select>
               </label>
@@ -83,7 +83,7 @@ export function ImportForm({ accounts }: { accounts: Acct[] }) {
           <p className="label">{rows.length} transactions found{rows.length ? `, ${formatDay(rows[rows.length - 1].date)} to ${formatDay(rows[0].date)}` : ""}</p>
           <div className="table-wrap">
             <table className="ledger">
-              <thead><tr><th>date</th><th>description</th><th className="num">amount</th></tr></thead>
+              <thead><tr><th>Date</th><th>Description</th><th className="num">Amount</th></tr></thead>
               <tbody>
                 {rows.slice(0, 6).map((r, i) => (
                   <tr key={i}><td>{formatDay(r.date)}</td><td>{r.narration.slice(0, 80)}</td><td className="num amt" data-kind={r.kind}>{formatMinor(Math.round(r.amount * 100) * (r.kind === "income" ? 1 : -1), acct?.currency ?? "INR", { sign: true })}</td></tr>
@@ -94,7 +94,7 @@ export function ImportForm({ accounts }: { accounts: Acct[] }) {
           <div className="tx-form__end">
             <button className="btn btn--primary" disabled={busy || !rows.length || !accountId}
               onClick={() => start(async () => setMsg(await importAction(accountId, p.filename, rows)))}>
-              <Upload size={16} aria-hidden /> {busy ? "importing" : `import ${rows.length} rows`}
+              <Upload size={16} aria-hidden /> {busy ? "Importing" : `import ${rows.length} rows`}
             </button>
           </div>
         </section>

@@ -16,9 +16,9 @@ export function CategoryForm() {
   useEffect(() => { if (s.message) ref.current?.reset(); }, [s]);
   return (
     <form ref={ref} action={action} className="well tx-form" aria-busy={pending}>
-      <label className="field"><span className="label">name</span><input name="name" required maxLength={40} className="input" /></label>
-      <label className="field"><span className="label">kind</span><select name="kind" className="input"><option value="expense">expense</option><option value="income">income</option></select></label>
-      <div className="tx-form__end"><Status s={s} /><button className="btn btn--primary" disabled={pending}>add category</button></div>
+      <label className="field"><span className="label">Name</span><input name="name" required maxLength={40} className="input" /></label>
+      <label className="field"><span className="label">Kind</span><select name="kind" className="input"><option value="expense">Expense</option><option value="income">Income</option></select></label>
+      <div className="tx-form__end"><Status s={s} /><button className="btn btn--primary" disabled={pending}>Add category</button></div>
     </form>
   );
 }
@@ -29,9 +29,9 @@ export function RuleForm({ categories }: { categories: Cat[] }) {
   useEffect(() => { if (s.message) ref.current?.reset(); }, [s]);
   return (
     <form ref={ref} action={action} className="well tx-form" aria-busy={pending}>
-      <label className="field"><span className="label">when payee or description contains</span><input name="pattern" required minLength={3} maxLength={60} placeholder="swiggy" className="input" /></label>
-      <label className="field"><span className="label">use category</span><select name="categoryId" className="input">{categories.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.kind})</option>)}</select></label>
-      <div className="tx-form__end"><Status s={s} /><button className="btn btn--primary" disabled={pending}>save rule</button></div>
+      <label className="field"><span className="label">When payee or description contains</span><input name="pattern" required minLength={3} maxLength={60} placeholder="Swiggy" className="input" /></label>
+      <label className="field"><span className="label">Use category</span><select name="categoryId" className="input">{categories.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.kind})</option>)}</select></label>
+      <div className="tx-form__end"><Status s={s} /><button className="btn btn--primary" disabled={pending}>Save rule</button></div>
     </form>
   );
 }

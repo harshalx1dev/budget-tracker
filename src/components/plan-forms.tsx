@@ -20,10 +20,10 @@ export function BudgetForm({ categories }: { categories: Cat[] }) {
   const ref = useReset(s);
   return (
     <form ref={ref} action={action} className="well tx-form" aria-busy={pending}>
-      <label className="field"><span className="label">category</span><select name="categoryId" className="input">{categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
-      <label className="field"><span className="label">monthly limit</span><input name="amount" inputMode="decimal" required className="input" /></label>
-      <label className="check"><input type="checkbox" name="rollover" /> carry unspent money to next month</label>
-      <div className="tx-form__end"><Status s={s} /><button className="btn btn--primary" disabled={pending}>save budget</button></div>
+      <label className="field"><span className="label">Category</span><select name="categoryId" className="input">{categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+      <label className="field"><span className="label">Monthly limit</span><input name="amount" inputMode="decimal" required className="input" /></label>
+      <label className="check"><input type="checkbox" name="rollover" /> Carry unspent money to next month</label>
+      <div className="tx-form__end"><Status s={s} /><button className="btn btn--primary" disabled={pending}>Save budget</button></div>
     </form>
   );
 }
@@ -33,10 +33,10 @@ export function GoalForm() {
   const ref = useReset(s);
   return (
     <form ref={ref} action={action} className="well tx-form" aria-busy={pending}>
-      <label className="field"><span className="label">goal</span><input name="name" required maxLength={60} placeholder="emergency fund" className="input" /></label>
-      <label className="field"><span className="label">target amount</span><input name="target" inputMode="decimal" required className="input" /></label>
-      <label className="field"><span className="label">by (optional)</span><input name="targetDate" type="date" className="input" /></label>
-      <div className="tx-form__end"><Status s={s} /><button className="btn btn--primary" disabled={pending}>add goal</button></div>
+      <label className="field"><span className="label">Goal</span><input name="name" required maxLength={60} placeholder="Emergency fund" className="input" /></label>
+      <label className="field"><span className="label">Target amount</span><input name="target" inputMode="decimal" required className="input" /></label>
+      <label className="field"><span className="label">By (optional)</span><input name="targetDate" type="date" className="input" /></label>
+      <div className="tx-form__end"><Status s={s} /><button className="btn btn--primary" disabled={pending}>Add goal</button></div>
     </form>
   );
 }
@@ -47,10 +47,10 @@ export function ContributionForm({ goalId }: { goalId: string }) {
   return (
     <form ref={ref} action={action} className="inline-form" aria-busy={pending}>
       <input type="hidden" name="goalId" value={goalId} />
-      <label className="visually-hidden" htmlFor={`c-${goalId}`}>amount</label>
-      <input id={`c-${goalId}`} name="amount" inputMode="decimal" required placeholder="amount" className="input input--sm" />
-      <label className="check"><input type="checkbox" name="withdraw" /> withdraw</label>
-      <button className="btn btn--secondary" disabled={pending}>save</button>
+      <label className="visually-hidden" htmlFor={`c-${goalId}`}>Amount</label>
+      <input id={`c-${goalId}`} name="amount" inputMode="decimal" required placeholder="Amount" className="input input--sm" />
+      <label className="check"><input type="checkbox" name="withdraw" /> Withdraw</label>
+      <button className="btn btn--secondary" disabled={pending}>Save</button>
       <Status s={s} />
     </form>
   );
@@ -60,9 +60,9 @@ export function BufferForm({ current }: { current: string }) {
   const [s, action, pending] = useActionState<PlanState, FormData>(setBufferAction, {});
   return (
     <form action={action} className="inline-form" aria-busy={pending}>
-      <label className="visually-hidden" htmlFor="buffer">buffer amount</label>
+      <label className="visually-hidden" htmlFor="buffer">Buffer amount</label>
       <input id="buffer" name="buffer" inputMode="decimal" defaultValue={current} className="input input--sm" />
-      <button className="btn btn--secondary" disabled={pending}>save</button>
+      <button className="btn btn--secondary" disabled={pending}>Save</button>
       <Status s={s} />
     </form>
   );

@@ -40,10 +40,10 @@ export async function removeKeyAction() {
 
 export async function adviseWishlistAction(): Promise<AiState> {
   const { user, workspace } = await requireWorkspace();
-  try { await adviseWishlist(user.id, workspace.id, workspace.homeCurrency); refresh(); return { message: "done" }; } catch (e) { return fail(e); }
+  try { await adviseWishlist(user.id, workspace.id, workspace.homeCurrency); refresh(); return { message: "Done" }; } catch (e) { return fail(e); }
 }
 
 export async function summariseMonthAction(): Promise<AiState> {
   const { user, workspace } = await requireWorkspace();
-  try { await summariseMonth(user.id, workspace.id, workspace.homeCurrency, thisMonth()); refresh(); return { message: "done" }; } catch (e) { return fail(e); }
+  try { await summariseMonth(user.id, workspace.id, workspace.homeCurrency, thisMonth()); refresh(); return { message: "Done" }; } catch (e) { return fail(e); }
 }

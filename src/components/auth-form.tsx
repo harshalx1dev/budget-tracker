@@ -24,24 +24,24 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       ? await authClient.signUp.email({ name: String(f.get("name")), email, password })
       : await authClient.signIn.email({ email, password });
     setBusy(false);
-    if (res.error) return setError(res.error.message ?? "something went wrong");
+    if (res.error) return setError(res.error.message ?? "Something went wrong");
     router.push(next);
     router.refresh();
   }
 
   return (
     <form onSubmit={submit} className="auth-form" aria-busy={busy}>
-      <h1>{signup ? "create your account" : "welcome back"}</h1>
+      <h1>{signup ? "Create your account" : "Welcome back"}</h1>
       {signup && (
-        <label className="field"><span className="label">name</span><input name="name" required autoComplete="name" className="input" /></label>
+        <label className="field"><span className="label">Name</span><input name="name" required autoComplete="name" className="input" /></label>
       )}
-      <label className="field"><span className="label">email</span><input name="email" type="email" required autoComplete="email" className="input" /></label>
-      <label className="field"><span className="label">password</span><input name="password" type="password" required minLength={8} autoComplete={signup ? "new-password" : "current-password"} className="input" /></label>
+      <label className="field"><span className="label">Email</span><input name="email" type="email" required autoComplete="email" className="input" /></label>
+      <label className="field"><span className="label">Password</span><input name="password" type="password" required minLength={8} autoComplete={signup ? "new-password" : "current-password"} className="input" /></label>
       {error && <p role="alert" className="error">{error}</p>}
-      <button className="btn btn--primary" disabled={busy}>{busy ? "one moment" : signup ? "sign up" : "sign in"}</button>
+      <button className="btn btn--primary" disabled={busy}>{busy ? "One moment" : signup ? "Sign up" : "Sign in"}</button>
       <p className="label">
-        {signup ? "already have an account? " : "new here? "}
-        <Link href={signup ? "/login" : "/signup"} className="link">{signup ? "sign in" : "create an account"}</Link>
+        {signup ? "Already have an account? " : "New here? "}
+        <Link href={signup ? "/login" : "/signup"} className="link">{signup ? "Sign in" : "Create an account"}</Link>
       </p>
     </form>
   );

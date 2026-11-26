@@ -9,9 +9,9 @@ import { thisMonth } from "@/lib/dates";
 import { nextMonth } from "@/lib/planner";
 import { addMonths } from "@/lib/dates";
 
-export const metadata = { title: "reports" };
+export const metadata = { title: "Reports" };
 
-const label = (ym: string) => new Date(`${ym}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "long", year: "numeric", timeZone: "UTC" }).toLowerCase();
+const label = (ym: string) => new Date(`${ym}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "long", year: "numeric", timeZone: "UTC" });
 
 async function ReportsLoader({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
   const { m } = await searchParams;
@@ -26,20 +26,20 @@ async function ReportsLoader({ searchParams }: { searchParams: Promise<{ m?: str
   return (
     <div className="settle stack">
       <div className="head-row">
-        <h1>reports</h1>
-        <nav className="subnav" aria-label="month">
-          <Link href={`/app/plan/reports?m=${prev}`} className="pill pill--outline">earlier</Link>
+        <h1>Reports</h1>
+        <nav className="subnav" aria-label="Month">
+          <Link href={`/app/plan/reports?m=${prev}`} className="pill pill--outline">Earlier</Link>
           <span className="pill" aria-current="page">{label(month)}</span>
-          {month < cur ? <Link href={`/app/plan/reports?m=${nextMonth(month)}`} className="pill pill--outline">later</Link> : null}
+          {month < cur ? <Link href={`/app/plan/reports?m=${nextMonth(month)}`} className="pill pill--outline">Later</Link> : null}
         </nav>
       </div>
 
       <section className="stack-sm" aria-labelledby="trend-h">
-        <h2 id="trend-h">income and spending, six months</h2>
+        <h2 id="trend-h">Income and spending, six months</h2>
         <div className="well" style={{ padding: "var(--space-lg)" }}><MonthlyChart rows={totals} currency={home} /></div>
         <div className="well table-wrap">
           <table className="ledger">
-            <thead><tr><th>month</th><th className="num">income</th><th className="num">spending</th><th className="num">kept</th></tr></thead>
+            <thead><tr><th>Month</th><th className="num">Income</th><th className="num">Spending</th><th className="num">Kept</th></tr></thead>
             <tbody>
               {totals.map((r) => (
                 <tr key={r.month}><td>{label(r.month)}</td><td className="num amt" data-kind="income">{formatMinor(r.income, home)}</td><td className="num">{formatMinor(r.expense, home)}</td><td className="num">{formatMinor(r.income - r.expense, home)}</td></tr>
@@ -50,8 +50,8 @@ async function ReportsLoader({ searchParams }: { searchParams: Promise<{ m?: str
       </section>
 
       <section className="stack-sm" aria-labelledby="cat-h">
-        <h2 id="cat-h">where {label(month)} went</h2>
-        {cats.length === 0 ? <div className="well empty"><h3>no spending this month</h3><p>Entries you add or import will show up here by category.</p></div> : (
+        <h2 id="cat-h">Where {label(month)} went</h2>
+        {cats.length === 0 ? <div className="well empty"><h3>No spending this month</h3><p>Entries you add or import will show up here by category.</p></div> : (
           <ul className="bars">
             {cats.map((c) => {
               const pct = spent > 0 ? Math.round((c.total / spent) * 100) : 0;
@@ -68,10 +68,10 @@ async function ReportsLoader({ searchParams }: { searchParams: Promise<{ m?: str
 
       {payees.length > 0 && (
         <section className="stack-sm" aria-labelledby="pay-h">
-          <h2 id="pay-h">biggest payees</h2>
+          <h2 id="pay-h">Biggest payees</h2>
           <div className="well table-wrap">
             <table className="ledger">
-              <thead><tr><th>payee</th><th className="num">times</th><th className="num">total</th></tr></thead>
+              <thead><tr><th>Payee</th><th className="num">Times</th><th className="num">Total</th></tr></thead>
               <tbody>{payees.map((p) => <tr key={p.name}><td>{p.name}</td><td className="num">{p.n}</td><td className="num">{formatMinor(p.total, home)}</td></tr>)}</tbody>
             </table>
           </div>

@@ -1,28 +1,34 @@
 import type { Metadata, Viewport } from "next";
-import { Outfit, Onest } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
+import { Suspense } from "react";
 import { Providers } from "@/components/providers";
+import { Intro } from "@/components/intro";
+import { NavProgress } from "@/components/nav-progress";
+import { BRAND } from "@/lib/brand";
 import "./globals.css";
 
-const outfit = Outfit({ variable: "--font-outfit", subsets: ["latin"], weight: ["300", "500"] });
-const onest = Onest({ variable: "--font-onest", subsets: ["latin"], weight: ["400"] });
+const geist = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "budget tracker",
-  description: "Track what comes in, what goes out, and plan what comes next.",
-  appleWebApp: { capable: true, title: "budget", statusBarStyle: "default" },
+  title: { default: `${BRAND.name}: ${BRAND.tagline}`, template: `%s · ${BRAND.name}` },
+  description: BRAND.description,
+  appleWebApp: { capable: true, title: BRAND.name, statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f4f1fb" },
-    { media: "(prefers-color-scheme: dark)", color: "#0e0b17" },
+    { media: "(prefers-color-scheme: light)", color: "#f6f8f9" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b1115" },
   ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${outfit.variable} ${onest.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${geist.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <body>
+        <Intro />
+        <Suspense><NavProgress /></Suspense>
         <Providers>{children}</Providers>
       </body>
     </html>

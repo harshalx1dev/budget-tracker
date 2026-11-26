@@ -51,7 +51,7 @@ export function RemindersCard() {
     setOn(false); setNote({ text: "Reminders are off for this device." });
   });
 
-  if (support === "checking") return <p className="label">checking this device…</p>;
+  if (support === "checking") return <p className="label">Checking this device…</p>;
   if (support === "unsupported") return <p className="label">This browser or server setup cannot send reminders.</p>;
   if (support === "needs-install") return <p className="label">Reminders need the installed app or the production site (the service worker is not running here yet). Open the deployed app, then come back.</p>;
 
@@ -59,9 +59,9 @@ export function RemindersCard() {
     <div className="stack-sm">
       <p className="label">One short notification a day, around 9am, when a bill or EMI is due today or tomorrow, or slipped in the last week. Nothing else.</p>
       <div className="inline-form">
-        {on ? <button type="button" className="btn btn--secondary" disabled={pending} onClick={disable}>turn off on this device</button>
-            : <button type="button" className="btn btn--primary" disabled={pending} onClick={enable}><Bell size={16} aria-hidden /> turn on reminders</button>}
-        {on && <button type="button" className="btn btn--secondary" disabled={pending} onClick={() => start(async () => { const r = await sendTestAction(); setNote({ text: r.error ?? r.message ?? "", error: Boolean(r.error) }); })}>send a test</button>}
+        {on ? <button type="button" className="btn btn--secondary" disabled={pending} onClick={disable}>Turn off on this device</button>
+            : <button type="button" className="btn btn--primary" disabled={pending} onClick={enable}><Bell size={16} aria-hidden /> Turn on reminders</button>}
+        {on && <button type="button" className="btn btn--secondary" disabled={pending} onClick={() => start(async () => { const r = await sendTestAction(); setNote({ text: r.error ?? r.message ?? "", error: Boolean(r.error) }); })}>Send a test</button>}
         <p className="label" role="status">{note ? (note.error ? <span className="error">{note.text}</span> : note.text) : null}</p>
       </div>
     </div>

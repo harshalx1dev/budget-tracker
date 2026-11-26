@@ -19,9 +19,9 @@ export function AiKeyForm({ connected, usedToday }: { connected: { last4: string
       )}
       <form action={action} className="inline-form" aria-busy={pending}>
         <label className="visually-hidden" htmlFor="gkey">Gemini API key</label>
-        <input id="gkey" name="key" type="password" autoComplete="off" spellCheck={false} placeholder={connected?.source === "user" ? "replace the key" : "paste your Gemini API key"} className="input input--sm" />
-        <button className="btn btn--primary" disabled={pending}>{pending ? "checking" : connected?.source === "user" ? "replace key" : "save key"}</button>
-        {connected?.source === "user" && <button type="button" className="btn btn--secondary" disabled={removing} onClick={() => startRemove(() => removeKeyAction())}>remove</button>}
+        <input id="gkey" name="key" type="password" autoComplete="off" spellCheck={false} placeholder={connected?.source === "user" ? "Replace the key" : "paste your Gemini API key"} className="input input--sm" />
+        <button className="btn btn--primary" disabled={pending}>{pending ? "Checking" : connected?.source === "user" ? "Replace key" : "Save key"}</button>
+        {connected?.source === "user" && <button type="button" className="btn btn--secondary" disabled={removing} onClick={() => startRemove(() => removeKeyAction())}>Remove</button>}
         <p className="label" role="status">{s.error ? <span className="error">{s.error}</span> : s.message}</p>
       </form>
       <p className="label">The key is encrypted before it is stored and is only used for your own requests.</p>
@@ -37,7 +37,7 @@ export function AiButton({ label, run, enabled }: { label: string; run: () => Pr
   return (
     <span className="match-now">
       <button type="button" className="btn btn--secondary" disabled={pending} onClick={() => start(async () => { const r = await run(); setNote(r.error ?? null); })}>
-        <Sparkles size={16} aria-hidden /> {pending ? "thinking" : label}
+        <Sparkles size={16} aria-hidden /> {pending ? "Thinking" : label}
       </button>
       <span className="label error" role="status">{note}</span>
     </span>

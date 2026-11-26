@@ -25,7 +25,7 @@ export function ForecastChart({ rows, currency }: { rows: Row[]; currency: strin
           <g key={r.month}>
             <rect x={x} y={neg ? BASE : BASE - h} width={bw} height={Math.max(2, h)} rx={6} className={neg ? "chart__bar chart__bar--neg" : "chart__bar"} />
             <text x={x + bw / 2} y={neg ? BASE + h + 16 : BASE - h - 8} textAnchor="middle" className="chart__value">{compact(r.end, currency)}</text>
-            <text x={x + bw / 2} y={H - 12} textAnchor="middle" className="chart__label">{new Date(`${r.month}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "short", timeZone: "UTC" }).toLowerCase()}</text>
+            <text x={x + bw / 2} y={H - 12} textAnchor="middle" className="chart__label">{new Date(`${r.month}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "short", timeZone: "UTC" })}</text>
           </g>
         );
       })}

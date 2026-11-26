@@ -9,8 +9,8 @@ export async function pdfToTable(bytes: Uint8Array): Promise<string[][]> {
     pdf = await getDocumentProxy(bytes);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
-    if (/password/i.test(msg)) throw new Error("that PDF is password protected; download an unlocked copy or use the CSV");
-    throw new Error("could not read that PDF");
+    if (/password/i.test(msg)) throw new Error("That PDF is password protected; download an unlocked copy or use the CSV");
+    throw new Error("Could not read that PDF");
   }
   const pages: PdfItem[][] = [];
   for (let p = 1; p <= pdf.numPages; p++) {
@@ -22,6 +22,6 @@ export async function pdfToTable(bytes: Uint8Array): Promise<string[][]> {
     );
   }
   const table = pdfPagesToTable(pages);
-  if (!table) throw new Error("could not find a transaction table in that PDF; try the CSV download");
+  if (!table) throw new Error("Could not find a transaction table in that PDF; try the CSV download");
   return table;
 }

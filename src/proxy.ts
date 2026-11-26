@@ -5,7 +5,8 @@ import { getSessionCookie } from "better-auth/cookies";
 export function proxy(request: NextRequest) {
   const hasCookie = Boolean(getSessionCookie(request));
   const { pathname } = request.nextUrl;
-  if (pathname === "/") return NextResponse.redirect(new URL(hasCookie ? "/app" : "/login", request.url));
+  // Signed-in visitors go straight to the app; everyone else sees the landing page.
+  if (pathname === "/") return hasCookie ? NextResponse.redirect(new URL("/app", request.url)) : NextResponse.next();
   if (!hasCookie) {
     const url = new URL("/login", request.url);
     url.searchParams.set("next", pathname);

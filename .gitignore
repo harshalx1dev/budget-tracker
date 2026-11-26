@@ -42,3 +42,9 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# third-party agent skills and their working files
+.agents/
+.claude/
+skills-lock.json
+.taste-skill/

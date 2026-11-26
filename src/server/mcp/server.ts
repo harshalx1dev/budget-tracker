@@ -31,7 +31,7 @@ function validDate(s: string) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
   const iso = m ? makeISO(+m[1], +m[2], +m[3]) : null;
   const today = todayISO();
-  if (!iso || iso > shiftDays(today, 1) || iso < shiftDays(today, -400)) throw new ToolError("date must be a real date within the last 400 days and not in the future");
+  if (!iso || iso > shiftDays(today, 1) || iso < shiftDays(today, -400)) throw new ToolError("Date must be a real date within the last 400 days and not in the future");
   return iso;
 }
 
@@ -111,8 +111,8 @@ export function createBudgetServer(auth: McpAuth) {
   }, async (a) => {
     const priceMinor = Math.round(a.price * 10 ** exponent(home));
     const down = Math.round((a.downPayment ?? 0) * 10 ** exponent(home));
-    if (down >= priceMinor) throw new ToolError("the down payment must be less than the price");
-    const r = await checkWish(ws.id, home, { id: "hypothetical", title: "hypothetical", priceMinor, type: "want", priority: 2, financing: a.emiMonths ? { downMinor: down, tenure: a.emiMonths, ratePct: a.emiRatePercent ?? 0 } : null });
+    if (down >= priceMinor) throw new ToolError("The down payment must be less than the price");
+    const r = await checkWish(ws.id, home, { id: "hypothetical", title: "Hypothetical", priceMinor, type: "want", priority: 2, financing: a.emiMonths ? { downMinor: down, tenure: a.emiMonths, ratePct: a.emiRatePercent ?? 0 } : null });
     return {
       canPayInFullFrom: r.outrightFrom, planHorizonEnds: r.horizonEnd, buffer: toMajor(r.buffer, home), maxEmiShareOfIncomePercent: r.maxEmiRatioPct, incomePlanned: r.incomeKnown,
       emi: r.emi ? { from: r.emi.from, monthlyEmi: toMajor(r.emi.emiMinor, home), months: r.emi.tenure, downPayment: toMajor(r.emi.downMinor, home), totalInterest: toMajor(r.emi.interestMinor, home), emiShareOfIncomeUnchecked: r.emi.ratioUnknown } : a.emiMonths ? "not possible on these terms within the plan" : null,
@@ -133,17 +133,17 @@ export function createBudgetServer(auth: McpAuth) {
     const accts = await listAccounts(ws.id);
     const acct = a.account ? accts.find((x) => x.name.toLowerCase() === a.account!.toLowerCase()) : accts.find((x) => x.type === "cash") ?? accts[0];
     if (!acct) throw new ToolError(a.account ? `no account named "${clip(a.account, 60)}". Accounts: ${accts.map((x) => x.name).join(", ")}` : "add an account in the app first");
-    if (acct.currency !== home) throw new ToolError("only home-currency accounts can be used here");
+    if (acct.currency !== home) throw new ToolError("Only home-currency accounts can be used here");
     let categoryId: string | null = null;
     if (a.category) {
       const cats = await listCategories(ws.id);
       const c = cats.find((x) => x.kind === a.kind && x.name.toLowerCase() === a.category!.toLowerCase());
-      if (!c) throw new ToolError(`no ${a.kind} category named "${clip(a.category, 60)}". Options: ${cats.filter((x) => x.kind === a.kind).map((x) => x.name).join(", ")}`);
+      if (!c) throw new ToolError(`No ${a.kind} category named "${clip(a.category, 60)}". Options: ${cats.filter((x) => x.kind === a.kind).map((x) => x.name).join(", ")}`);
       categoryId = c.id;
     }
     const date = a.date ? validDate(a.date) : todayISO();
     const amountMinor = Math.round(a.amount * 10 ** exponent(acct.currency));
-    if (amountMinor < 1) throw new ToolError("amount is too small");
+    if (amountMinor < 1) throw new ToolError("Amount is too small");
     await db.insert(transactions).values({ workspaceId: ws.id, accountId: acct.id, categoryId, kind: a.kind, amountMinor, currency: acct.currency, payee: a.payee?.trim() || null, note: a.note?.trim() || null, occurredOn: date, source: "mcp", status: categoryId ? "confirmed" : "pending", clientRef: a.clientRef ? `mcp:${a.clientRef}` : null });
     await autoMatch(ws.id);
     return { added: true, account: acct.name, date, amount: a.amount, kind: a.kind, category: a.category ?? null, waitingInInbox: categoryId === null };
@@ -159,8 +159,8 @@ export function createBudgetServer(auth: McpAuth) {
       if (r.duplicate) return { added: false, duplicate: true };
       return { added: true, amount: toMajor(r.amountMinor, r.currency), account: r.account, date: r.date, what: clip(r.text, 80), categorised: r.categorised };
     } catch (e) {
-      if (e instanceof NoAmountError) throw new ToolError("no amount found in that line; use add_transaction with an explicit amount");
-      throw new ToolError(e instanceof Error ? e.message : "could not add that");
+      if (e instanceof NoAmountError) throw new ToolError("No amount found in that line; use add_transaction with an explicit amount");
+      throw new ToolError(e instanceof Error ? e.message : "Could not add that");
     }
   });
 
@@ -171,7 +171,7 @@ export function createBudgetServer(auth: McpAuth) {
   }, async (a) => {
     const priceMinor = Math.round(a.price * 10 ** exponent(home));
     const down = a.downPayment !== undefined ? Math.round(a.downPayment * 10 ** exponent(home)) : null;
-    if (down !== null && down >= priceMinor) throw new ToolError("the down payment must be less than the price");
+    if (down !== null && down >= priceMinor) throw new ToolError("The down payment must be less than the price");
     const id = await addWish(ws.id, { title: a.title.trim(), priceMinor, type: a.type ?? "want", priority: a.priority ?? 2, targetDate: null, notes: a.notes?.trim() || null, categoryId: null, downPaymentMinor: down, emiTenureMonths: a.emiMonths ?? null, emiRatePct: a.emiMonths ? (a.emiRatePercent ?? 0) : null });
     if (a.url) await db.insert(schema.wishlistLinks).values({ workspaceId: ws.id, itemId: id, url: a.url, label: null, priceMinor: null });
     return { added: true, title: a.title };

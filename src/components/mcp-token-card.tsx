@@ -19,12 +19,12 @@ export function McpTokenCard({ endpoint, tokens }: { endpoint: string; tokens: T
       <p className="label">Endpoint: <code className="code">{endpoint}</code></p>
 
       <form action={action} className="inline-form" aria-busy={pending}>
-        <label className="visually-hidden" htmlFor="tname">token name</label>
-        <input id="tname" name="name" required maxLength={60} placeholder="my agent" className="input input--sm" />
-        <label className="visually-hidden" htmlFor="tdays">lifetime</label>
-        <select id="tdays" name="days" className="input input--sm" defaultValue="90"><option value="30">30 days</option><option value="90">90 days</option><option value="365">1 year</option><option value="0">never expires</option></select>
-        <label className="check"><input type="checkbox" name="write" /> allow adding entries</label>
-        <button className="btn btn--primary" disabled={pending}>create token</button>
+        <label className="visually-hidden" htmlFor="tname">Token name</label>
+        <input id="tname" name="name" required maxLength={60} placeholder="My agent" className="input input--sm" />
+        <label className="visually-hidden" htmlFor="tdays">Lifetime</label>
+        <select id="tdays" name="days" className="input input--sm" defaultValue="90"><option value="30">30 days</option><option value="90">90 days</option><option value="365">1 year</option><option value="0">Never expires</option></select>
+        <label className="check"><input type="checkbox" name="write" /> Allow adding entries</label>
+        <button className="btn btn--primary" disabled={pending}>Create token</button>
         {s.error && <p className="error" role="alert">{s.error}</p>}
       </form>
 
@@ -34,22 +34,22 @@ export function McpTokenCard({ endpoint, tokens }: { endpoint: string; tokens: T
           <code className="code code--block">{s.token}</code>
           <p className="label">Claude Code:</p>
           <code className="code code--block">{cmd}</code>
-          <button type="button" className="btn btn--secondary" style={{ justifySelf: "start" }} onClick={async () => { await navigator.clipboard.writeText(s.token!); setCopied(true); }}><Copy size={16} aria-hidden /> {copied ? "copied" : "copy token"}</button>
+          <button type="button" className="btn btn--secondary" style={{ justifySelf: "start" }} onClick={async () => { await navigator.clipboard.writeText(s.token!); setCopied(true); }}><Copy size={16} aria-hidden /> {copied ? "Copied" : "Copy token"}</button>
         </div>
       )}
 
       {tokens.length > 0 && (
         <div className="table-wrap">
           <table className="ledger">
-            <thead><tr><th>name</th><th>access</th><th>last used</th><th>expires</th><th><span className="visually-hidden">revoke</span></th></tr></thead>
+            <thead><tr><th>Name</th><th>Access</th><th>Last used</th><th>Expires</th><th><span className="visually-hidden">Revoke</span></th></tr></thead>
             <tbody>
               {tokens.map((t) => (
                 <tr key={t.id}>
                   <td>{t.name} <span className="label">{t.prefix}…</span></td>
-                  <td>{t.write ? "read and add" : "read only"}</td>
-                  <td>{t.lastUsedAt ? formatDayYear(t.lastUsedAt.slice(0, 10)) : "never"}</td>
-                  <td>{t.state !== "active" ? t.state : t.expiresAt ? formatDayYear(t.expiresAt.slice(0, 10)) : "never"}</td>
-                  <td>{t.state === "active" ? <button type="button" className="pill pill--outline" disabled={revoking} onClick={() => start(() => revokeTokenAction(t.id))}>revoke</button> : null}</td>
+                  <td>{t.write ? "Read and add" : "Read only"}</td>
+                  <td>{t.lastUsedAt ? formatDayYear(t.lastUsedAt.slice(0, 10)) : "Never"}</td>
+                  <td>{t.state !== "active" ? t.state : t.expiresAt ? formatDayYear(t.expiresAt.slice(0, 10)) : "Never"}</td>
+                  <td>{t.state === "active" ? <button type="button" className="pill pill--outline" disabled={revoking} onClick={() => start(() => revokeTokenAction(t.id))}>Revoke</button> : null}</td>
                 </tr>
               ))}
             </tbody>
