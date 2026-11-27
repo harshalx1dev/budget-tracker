@@ -3,6 +3,7 @@ import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db, schema } from "@/server/db";
 import { forecast, listGoals, safeToSpend } from "@/server/services/planner";
 import { todayISO } from "@/lib/dates";
+import { createTransaction } from "@/server/services/ledger";
 import { pmt } from "@/lib/schedule";
 import { bestPlan, emiTerms, emiPlan, outrightPlan, sequence, type State, type Wish } from "@/lib/affordability";
 
@@ -50,6 +51,15 @@ export async function buyUnits(workspaceId: string, id: string, count: number, o
   const boughtCount = it.boughtCount + count;
   const done = boughtCount === it.quantity;
   await db.update(wishlistItems).set({ boughtCount, ...(done ? { status: "bought" as const, boughtOn: on } : {}) }).where(eq(wishlistItems.id, it.id));
+}
+
+/** Buying something from the list: what was really paid goes into the books, and the list counts it as bought. */
+export async function recordPurchase(workspaceId: string, homeCurrency: string, v: { id: string; count: number; on: string; expense: { amountMinor: number; accountId: string; categoryId: string | null } | null }) {
+  const it = await ownItem(workspaceId, v.id);
+  const left = it.quantity - it.boughtCount;
+  if (!Number.isInteger(v.count) || v.count < 1 || v.count > left) throw new Error(left ? `Enter a number from 1 to ${left}` : "That is already bought");
+  if (v.expense) await createTransaction(workspaceId, { ...v.expense, kind: "expense", fxRateToHome: null, payee: it.title.slice(0, 80), note: "From your wishlist", occurredOn: v.on }, homeCurrency);
+  await buyUnits(workspaceId, it.id, v.count, v.on);
 }
 
 export async function updateWish(workspaceId: string, id: string, w: NewWish) {

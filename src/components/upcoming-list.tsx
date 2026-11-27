@@ -1,10 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useSyncExternalStore } from "react";
+import { MarkPaidButton } from "./commit-forms";
 import { formatMinor } from "@/lib/money";
 import { formatDay, shiftDays } from "@/lib/dates";
 
-export type Upcoming = { key: string; name: string; dueOn: string; amountMinor: number; income: boolean };
+export type Upcoming = {
+  key: string; name: string; dueOn: string; amountMinor: number; income: boolean;
+  /** The bill or loan behind it; a card bill has none and is paid from the card block. */
+  source?: { kind: "loan" | "rule"; id: string };
+};
 
 const KEY = "budggyy-upcoming-days";
 const CHOICES = [7, 15, 30] as const;
@@ -33,6 +39,10 @@ export function UpcomingList({ items, today, home }: { items: Upcoming[]; today:
               <span className="lines__when" data-late={i.dueOn < today || undefined}>{i.dueOn < today ? `Late, ${formatDay(i.dueOn)}` : i.dueOn === today ? "Today" : formatDay(i.dueOn)}</span>
               <span className="lines__what">{i.name}</span>
               <span className="lines__sum amt" data-kind={i.income ? "income" : "expense"}>{i.income ? "+" : ""}{money(i.amountMinor)}</span>
+              <span className="lines__act">
+                {i.source ? <MarkPaidButton sourceKind={i.source.kind} sourceId={i.source.id} dueOn={i.dueOn} label={i.income ? "Mark received" : "Mark paid"} />
+                  : <Link href="/app/accounts#cards-h" className="pill pill--outline">Pay card</Link>}
+              </span>
             </li>
           ))}
         </ul>

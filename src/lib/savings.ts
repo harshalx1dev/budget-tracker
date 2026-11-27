@@ -42,3 +42,7 @@ export function emergencyStatus(i: { essentialMonthlyMinor: number; months: numb
 export const savingsRate = (savedMinor: number, incomeMinor: number) => (incomeMinor > 0 ? Math.round((savedMinor / incomeMinor) * 100) : null);
 
 export const netWorth = (p: { liquidMinor: number; assetsMinor: number; liabilitiesMinor: number }) => p.liquidMinor + p.assetsMinor - p.liabilitiesMinor;
+
+/** Accounts a purchase can be paid from, bank first, then wallet, cash and cards. */
+export const spendingAccounts = (accounts: { id: string; name: string; type: string; currency: string }[], home: string) =>
+  ["bank", "wallet", "cash", "card"].flatMap((t) => accounts.filter((a) => a.type === t && a.currency === home)).map(({ id, name }) => ({ id, name }));

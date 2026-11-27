@@ -10,11 +10,12 @@ import { hideLoading, showLoading } from "@/lib/loading";
 import { ThemeToggle } from "./theme-toggle";
 
 const LINKS = [
-  { href: "/app", label: "Overview", Icon: LayoutDashboard },
-  { href: "/app/transactions", label: "Transactions", Icon: ReceiptText },
-  { href: "/app/inbox", label: "To sort", Icon: Inbox },
-  { href: "/app/plan", label: "Plan", Icon: Target },
-  { href: "/app/accounts", label: "Accounts", Icon: Landmark },
+  // `tab` is the short name for the phone tab bar; Settings sits in the phone's top bar instead.
+  { href: "/app", label: "Overview", tab: "Home", Icon: LayoutDashboard },
+  { href: "/app/transactions", label: "Transactions", tab: "Activity", Icon: ReceiptText },
+  { href: "/app/inbox", label: "To sort", tab: "Sort", Icon: Inbox },
+  { href: "/app/plan", label: "Plan", tab: "Plan", Icon: Target },
+  { href: "/app/accounts", label: "Accounts", tab: "Accounts", Icon: Landmark },
   { href: "/app/settings", label: "Settings", Icon: Settings },
 ];
 
@@ -54,13 +55,14 @@ export function TopBar() {
         <Brand />
         <span className="head-actions">
           <ThemeToggle />
+          <Link href="/app/settings" className="icon-btn" aria-label="Settings" aria-current={current("/app/settings")}><Settings size={18} aria-hidden /></Link>
           <button type="button" className="icon-btn" aria-label="Sign out" onClick={signOut}><LogOut size={18} aria-hidden /></button>
         </span>
       </header>
 
       <nav className="tabbar" aria-label="Main">
-        {LINKS.map(({ href, label, Icon }) => (
-          <Link key={href} href={href} className="tab" aria-current={current(href)}><Icon size={20} aria-hidden />{label}</Link>
+        {LINKS.filter((l) => l.tab).map(({ href, tab, Icon }) => (
+          <Link key={href} href={href} className="tab" aria-current={current(href)}><Icon size={20} aria-hidden /><span>{tab}</span></Link>
         ))}
       </nav>
     </>

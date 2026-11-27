@@ -11,15 +11,15 @@ export function useCloseWhenSaved(state: { message?: string; ok?: boolean }) {
   useEffect(() => { if (state.message || state.ok) close?.(); }, [state, close]);
 }
 
-/** A pencil button that opens the form for one thing. The form is mounted fresh each time it opens. */
-export function EditDialog({ label, children }: { label: string; children: React.ReactNode }) {
+/** A button (a pencil unless told otherwise) that opens the form for one thing. The form is mounted fresh each time it opens. */
+export function EditDialog({ label, trigger, children }: { label: string; trigger?: React.ReactNode; children: React.ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
   const [close] = useState(() => () => ref.current?.close());
   return (
     <>
-      <button type="button" className="icon-btn" aria-label={label} title={label} onClick={() => { setOpen(true); ref.current?.showModal(); }}>
-        <Pencil size={16} aria-hidden />
+      <button type="button" className={trigger ? "pill pill--outline" : "icon-btn"} aria-label={label} title={label} onClick={() => { setOpen(true); ref.current?.showModal(); }}>
+        {trigger ?? <Pencil size={16} aria-hidden />}
       </button>
       <dialog ref={ref} className="editor" aria-label={label} onClose={() => setOpen(false)}>
         {open && (

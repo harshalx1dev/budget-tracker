@@ -266,13 +266,16 @@ export async function markPaid(workspaceId: string, sourceKind: "loan" | "rule",
   const [ws] = await db.select({ home: schema.workspaces.homeCurrency }).from(schema.workspaces).where(eq(schema.workspaces.id, workspaceId));
   if (acct.currency !== ws.home) throw new Error("Pick a home-currency account for this commitment");
   const transferId = item.transferToAccountId ? crypto.randomUUID() : null;
+  // Paid early, the money moved today; paid late, it is booked on the day it was due.
+  const today = todayISO();
+  const occurredOn = item.dueOn > today ? today : item.dueOn;
   await db.transaction(async (tx) => {
     const [t] = await tx.insert(transactions).values({
       workspaceId, accountId: acct.id, categoryId: transferId ? null : item.categoryId, kind: item.kind, amountMinor: item.amountMinor, currency: acct.currency,
-      payee: item.name, occurredOn: item.dueOn, source: "manual", status: "confirmed", transferId,
+      payee: item.name, occurredOn, source: "manual", status: "confirmed", transferId,
     }).returning({ id: transactions.id });
     if (transferId && item.transferToAccountId) {
-      await tx.insert(transactions).values({ workspaceId, accountId: item.transferToAccountId, kind: "income", amountMinor: item.amountMinor, currency: acct.currency, payee: item.name, occurredOn: item.dueOn, source: "manual", status: "confirmed", transferId });
+      await tx.insert(transactions).values({ workspaceId, accountId: item.transferToAccountId, kind: "income", amountMinor: item.amountMinor, currency: acct.currency, payee: item.name, occurredOn, source: "manual", status: "confirmed", transferId });
     }
     await tx.insert(expectedMatches).values({ workspaceId, sourceKind, sourceId, dueOn, transactionId: t.id });
   });

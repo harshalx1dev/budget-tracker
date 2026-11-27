@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireWorkspace } from "@/server/session";
-import { addLink, addWish, buyUnits, chooseLink, deleteLink, deleteWish, setAutoEmi, setMaxEmiRatio, setWishStatus, updateWish, type NewWish } from "@/server/services/wishlist";
+import { addLink, addWish, chooseLink, deleteLink, deleteWish, recordPurchase, setAutoEmi, setMaxEmiRatio, setWishStatus, updateWish, type NewWish } from "@/server/services/wishlist";
 import { toMinor } from "@/lib/money";
 import { todayISO } from "@/lib/dates";
 
@@ -65,9 +65,20 @@ export async function updateWishAction(_: WishState, fd: FormData): Promise<Wish
   try { await updateWish(workspace.id, String(fd.get("id") ?? ""), read.wish); refresh(); return { message: "Saved" }; } catch (e) { return fail(e); }
 }
 
-export async function buyUnitsAction(_: WishState, fd: FormData): Promise<WishState> {
+export async function purchaseAction(_: WishState, fd: FormData): Promise<WishState> {
   const { workspace } = await requireWorkspace();
-  try { await buyUnits(workspace.id, String(fd.get("id") ?? ""), Number(fd.get("count")), todayISO()); refresh(); return { message: "Saved" }; } catch (e) { return fail(e); }
+  const record = fd.get("record") === "on";
+  const on = record ? String(fd.get("date") ?? "") : todayISO();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(on) || on > todayISO()) return { error: "Pick the day you bought it" };
+  const amountMinor = record ? toMinor(String(fd.get("paid") ?? ""), workspace.homeCurrency) : null;
+  if (record && !amountMinor) return { error: "Enter what you paid" };
+  const accountId = String(fd.get("accountId") ?? "");
+  if (record && !accountId) return { error: "Pick the account you paid from" };
+  try {
+    await recordPurchase(workspace.id, workspace.homeCurrency, { id: String(fd.get("id") ?? ""), count: Number(fd.get("count")), on, expense: amountMinor ? { amountMinor, accountId, categoryId: blank(fd.get("categoryId")) } : null });
+    refresh();
+    return { message: "Marked as bought" };
+  } catch (e) { return fail(e); }
 }
 
 export async function chooseLinkAction(id: string) {

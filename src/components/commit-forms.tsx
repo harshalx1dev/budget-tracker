@@ -128,9 +128,25 @@ export function RecurringForm({ accounts, categories, savingsAccounts = [], item
   );
 }
 
+/** Records a planned payment. Two presses, because it adds a transaction and the button sits in a busy list. */
 export function MarkPaidButton({ sourceKind, sourceId, dueOn, label = "Mark paid" }: { sourceKind: "loan" | "rule"; sourceId: string; dueOn: string; label?: string }) {
   const [pending, start] = useTransition();
-  return <button type="button" className="pill pill--outline" disabled={pending} onClick={() => start(async () => { await markPaidAction(sourceKind, sourceId, dueOn); })}><Check size={14} aria-hidden /> {label}</button>;
+  const [armed, setArmed] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!armed) return;
+    const t = setTimeout(() => setArmed(false), 4000);
+    return () => clearTimeout(t);
+  }, [armed]);
+  return (
+    <span className="head-actions">
+      <button type="button" className="pill pill--outline" data-suggested={armed || undefined} disabled={pending} aria-label={armed ? `Confirm: ${label.toLowerCase()}` : label}
+        onClick={() => { if (!armed) { setError(null); setArmed(true); return; } setArmed(false); start(async () => { const r = await markPaidAction(sourceKind, sourceId, dueOn); setError(r.error ?? null); }); }}>
+        <Check size={14} aria-hidden /> {armed ? "Confirm" : label}
+      </button>
+      {error && <span className="error" role="alert">{error}</span>}
+    </span>
+  );
 }
 
 export function MatchNowButton() {

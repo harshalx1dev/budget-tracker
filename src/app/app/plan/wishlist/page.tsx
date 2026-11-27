@@ -2,16 +2,18 @@ import { Suspense } from "react";
 import { Pencil, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import { PageSkeleton } from "@/components/page-skeleton";
-import { BoughtButton, BuyUnitsForm, LinkChip, LinkForm, RatioForm, RemoveIcon, StatusSelect, UseOptionButton, WishForm } from "@/components/wish-forms";
+import { LinkChip, LinkForm, RatioForm, RemoveIcon, StatusSelect, UseOptionButton, WishForm } from "@/components/wish-forms";
 import { AddPanel } from "@/components/add-panel";
 import { WishControls } from "@/components/wish-controls";
+import { BuyButton } from "@/components/buy-dialog";
+import { spendingAccounts } from "@/lib/savings";
 import { readView, viewWishes } from "@/lib/wish-view";
 import { AiButton } from "@/components/ai-bits";
 import { adviseWishlistAction } from "@/app/app/ai-actions";
 import { hasKey } from "@/server/ai/gateway";
 import { getSummary } from "@/server/services/ai-features";
 import { requireWorkspace } from "@/server/session";
-import { listCategories } from "@/server/services/ledger";
+import { listAccounts, listCategories } from "@/server/services/ledger";
 import { affordability } from "@/server/services/wishlist";
 import { formatMinor } from "@/lib/money";
 import { formatDayYear, thisMonth } from "@/lib/dates";
@@ -28,7 +30,8 @@ async function WishlistLoader({ searchParams }: { searchParams: Query }) {
   const view = readView(await searchParams);
   const { user, workspace } = await requireWorkspace();
   const home = workspace.homeCurrency;
-  const [categories, a, key, advice] = await Promise.all([listCategories(workspace.id), affordability(workspace.id, home), hasKey(user.id), getSummary(workspace.id, "wishlist", "current")]);
+  const [categories, a, key, advice, accounts] = await Promise.all([listCategories(workspace.id), affordability(workspace.id, home), hasKey(user.id), getSummary(workspace.id, "wishlist", "current"), listAccounts(workspace.id)]);
+  const payFrom = spendingAccounts(accounts, home);
   const expense = categories.filter((c) => c.kind === "expense");
   const rest = a.items.filter((i) => i.status === "bought" || i.status === "dropped");
   const now = thisMonth();
@@ -66,7 +69,7 @@ async function WishlistLoader({ searchParams }: { searchParams: Query }) {
                 {i.quantity > 1 && <p className="label">{i.quantity - i.boughtCount} of {i.quantity} still to buy, {money(i.priceMinor)} each</p>}
                 <div className="wish__foot">
                   <p className="when" data-tone={w.tone}>{w.text}</p>
-                  <span className="head-actions">{i.quantity > 1 ? <BuyUnitsForm key={i.boughtCount} id={o.id} left={i.quantity - i.boughtCount} /> : <BoughtButton id={o.id} />}<RemoveIcon kind="wish" id={o.id} label={`Delete ${o.title}`} /></span>
+                  <span className="head-actions"><BuyButton key={i.boughtCount} item={{ id: o.id, title: o.title, priceMinor: i.priceMinor, left: i.quantity - i.boughtCount, categoryId: i.categoryId }} accounts={payFrom} categories={expense.map(({ id, name }) => ({ id, name }))} currency={home} /><RemoveIcon kind="wish" id={o.id} label={`Delete ${o.title}`} /></span>
                 </div>
                 {i.emiOption && (
                   <p className="label">On EMI: {money(i.emiOption.monthlyMinor)} a month for {i.emiOption.tenure} months{i.emiOption.downMinor ? ` after ${money(i.emiOption.downMinor)} down` : ""}, at {i.emiOption.ratePct}%{i.emiOption.assumed ? " (your assumed rate)" : ""}{i.emiOption.interestMinor > 0 ? `, ${money(i.emiOption.interestMinor)} interest` : ""}.</p>

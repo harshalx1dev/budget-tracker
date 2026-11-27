@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { CalendarClock, Inbox, PieChart, ShoppingBag, Target, TrendingUp, Wallet } from "lucide-react";
 import { UpcomingList, type Upcoming } from "./upcoming-list";
+import { BuyButton } from "./buy-dialog";
+import { listAccounts, listCategories } from "@/server/services/ledger";
+import { spendingAccounts } from "@/lib/savings";
 import { listExpected } from "@/server/services/commitments";
 import { listCards } from "@/server/services/cards";
 import { affordability } from "@/server/services/wishlist";
@@ -29,14 +32,21 @@ function Panel({ id, title, icon, href, more, wide, children }: { id: string; ti
 /** The rest of the picture under free-to-spend: what is coming, what can be bought, and how the plan is going. */
 export async function OverviewPanels({ workspaceId, home }: { workspaceId: string; home: string }) {
   const today = todayISO(), month = thisMonth();
-  const [expected, cards, wish, budgets, spend, goals, assets, pending] = await Promise.all([
+  const [expected, cards, wish, budgets, spend, goals, assets, pending, accounts, categories] = await Promise.all([
     listExpected(workspaceId, shiftDays(today, -45), shiftDays(today, 30)), listCards(workspaceId), affordability(workspaceId, home),
     budgetStatus(workspaceId, month), spendingByCategory(workspaceId, home, month), listGoals(workspaceId), listAssets(workspaceId), pendingCount(workspaceId),
+    listAccounts(workspaceId), listCategories(workspaceId),
   ]);
+  const payFrom = spendingAccounts(accounts, home);
+  const expense = categories.filter((c) => c.kind === "expense").map(({ id, name }) => ({ id, name }));
+  const buy = (id: string) => {
+    const i = wish.items.find((x) => x.id === id)!;
+    return <BuyButton key={i.boughtCount} item={{ id, title: i.title, priceMinor: i.priceMinor, left: i.quantity - i.boughtCount, categoryId: i.categoryId }} accounts={payFrom} categories={expense} currency={home} />;
+  };
   const money = (v: number) => formatMinor(v, home, { whole: true });
 
   const upcoming: Upcoming[] = [
-    ...expected.filter((e) => e.status !== "paid").map((e) => ({ key: e.key, name: e.name, dueOn: e.dueOn, amountMinor: e.amountMinor, income: e.kind === "income" })),
+    ...expected.filter((e) => e.status !== "paid").map((e) => ({ key: e.key, name: e.name, dueOn: e.dueOn, amountMinor: e.amountMinor, income: e.kind === "income", source: { kind: e.sourceKind, id: e.sourceId } })),
     ...cards.filter((c) => c.bill && c.bill.toPay > 0 && c.bill.dueOn <= shiftDays(today, 30)).map((c) => ({ key: `card-${c.id}`, name: `${c.name} bill`, dueOn: c.bill!.dueOn, amountMinor: c.bill!.toPay, income: false })),
   ].sort((a, b) => a.dueOn.localeCompare(b.dueOn) || a.name.localeCompare(b.name));
 
@@ -66,7 +76,7 @@ export async function OverviewPanels({ workspaceId, home }: { workspaceId: strin
               <>
                 <p className="panel__figure">{now.length} {now.length === 1 ? "item" : "items"} now, {sum(now)}</p>
                 <p className="label">Uses all your money outside goals and what you keep aside, not only what is free this month.</p>
-                <ul className="lines">{now.slice(0, 5).map((o) => <li key={o.id}><span className="lines__what">{o.title}</span><span className="lines__sum">{money(o.priceMinor)}</span></li>)}</ul>
+                <ul className="lines lines--buy">{now.slice(0, 5).map((o) => <li key={o.id}><span className="lines__what">{o.title}</span><span className="lines__sum">{money(o.priceMinor)}</span>{buy(o.id)}</li>)}</ul>
               </>
             ) : (
               <p className="panel__figure">{next.length ? `Nothing yet. Next from ${monthLabel(next[0].month!)}` : "Nothing fits the plan yet"}</p>
@@ -74,7 +84,7 @@ export async function OverviewPanels({ workspaceId, home }: { workspaceId: strin
             {next.length > 0 && (
               <>
                 {now.length > 0 && <p className="label">Later</p>}
-                <ul className="lines">{next.slice(0, now.length ? 3 : 5).map((o) => <li key={o.id}><span className="lines__when">{monthLabel(o.month!)}</span><span className="lines__what">{o.title}</span><span className="lines__sum">{money(o.priceMinor)}</span></li>)}</ul>
+                <ul className="lines lines--buy">{next.slice(0, now.length ? 3 : 5).map((o) => <li key={o.id}><span className="lines__when">{monthLabel(o.month!)}</span><span className="lines__what">{o.title}</span><span className="lines__sum">{money(o.priceMinor)}</span>{buy(o.id)}</li>)}</ul>
               </>
             )}
             {!wish.incomeKnown && <p className="label">Add your salary under Accounts to get dates.</p>}

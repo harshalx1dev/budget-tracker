@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import { AutoEmiForm } from "@/components/auto-emi-form";
+import { InstallCard } from "@/components/install-app";
 import { getAutoEmi } from "@/server/services/wishlist";
-import { BellRing, CalendarClock, Download, Plug, ShieldCheck, Sparkles, Tags, User, Wallet } from "lucide-react";
+import { BellRing, CalendarClock, Download, Plug, ShieldCheck, Smartphone, Sparkles, Tags, User, Wallet } from "lucide-react";
 import { SectionHead } from "@/components/section-head";
 import { PageSkeleton } from "@/components/page-skeleton";
 import Link from "next/link";
@@ -32,6 +33,10 @@ async function SettingsLoader() {
           <p><Link href="/app/admin" className="link">Accounts and usage across the app</Link></p>
         </section>
       )}
+      <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
+        <SectionHead icon={Smartphone}>Install the app</SectionHead>
+        <InstallCard />
+      </section>
       <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
         <SectionHead icon={CalendarClock}>EMI for big purchases</SectionHead>
         <AutoEmiForm key={JSON.stringify(emi)} on={emi.on} over={String(emi.overMinor / 100)} months={emi.months} rate={String(emi.ratePct)} />

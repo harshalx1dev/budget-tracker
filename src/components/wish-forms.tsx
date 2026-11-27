@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef, useTransition } from "react";
 import { ExternalLink, Trash2 } from "lucide-react";
-import { addLinkAction, addWishAction, buyUnitsAction, chooseLinkAction, removeLinkAction, removeWishAction, setRatioAction, setStatusAction, updateWishAction, type WishState } from "@/app/app/wishlist-actions";
+import { addLinkAction, addWishAction, chooseLinkAction, removeLinkAction, removeWishAction, setRatioAction, setStatusAction, updateWishAction, type WishState } from "@/app/app/wishlist-actions";
 
 type Cat = { id: string; name: string };
 type Status = "wanted" | "planned" | "bought" | "dropped";
@@ -57,18 +57,6 @@ export function WishForm({ categories, item }: { categories: Cat[]; item?: Edita
   );
 }
 
-export function BuyUnitsForm({ id, left }: { id: string; left: number }) {
-  const [s, action, pending] = useActionState<WishState, FormData>(buyUnitsAction, {});
-  return (
-    <form action={action} className="inline-form" aria-busy={pending}>
-      <input type="hidden" name="id" value={id} />
-      <label className="check"><span>Bought</span><input key={left} name="count" inputMode="numeric" defaultValue={left} className="input input--sm" style={{ width: 72 }} /></label>
-      <button className="btn btn--secondary" disabled={pending}>Save</button>
-      {s.error && <span className="error" role="alert">{s.error}</span>}
-    </form>
-  );
-}
-
 export function UseOptionButton({ id }: { id: string }) {
   const [pending, start] = useTransition();
   return <button type="button" className="pill pill--outline" disabled={pending} onClick={() => start(() => chooseLinkAction(id))}>Use this price</button>;
@@ -90,11 +78,6 @@ export function LinkForm({ itemId }: { itemId: string }) {
       <Msg s={s} />
     </form>
   );
-}
-
-export function BoughtButton({ id }: { id: string }) {
-  const [pending, start] = useTransition();
-  return <button type="button" className="btn btn--secondary" disabled={pending} onClick={() => start(() => setStatusAction(id, "bought"))}>Mark bought</button>;
 }
 
 export function StatusSelect({ id, status }: { id: string; status: Status }) {

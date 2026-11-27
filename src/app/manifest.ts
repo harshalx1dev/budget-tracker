@@ -16,6 +16,6 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
       { src: "/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
-    shortcuts: [{ name: "Quick add", url: "/app/quick" }, { name: "Inbox", url: "/app/inbox" }],
+    shortcuts: [{ name: "Quick add", url: "/app/quick" }, { name: "To sort", url: "/app/inbox" }],
   };
 }

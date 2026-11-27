@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { db, schema } from "@/server/db";
 import { createLoan, createRule } from "@/server/services/commitments";
 import { setBuffer } from "@/server/services/planner";
-import { addLink, addWish, affordability, buyUnits, chooseLink, getAutoEmi, listWishlist, setAutoEmi, setMaxEmiRatio, setWishStatus, updateWish } from "@/server/services/wishlist";
+import { addLink, addWish, affordability, buyUnits, chooseLink, getAutoEmi, listWishlist, recordPurchase, setAutoEmi, setMaxEmiRatio, setWishStatus, updateWish } from "@/server/services/wishlist";
 import { shiftDays, todayISO } from "@/lib/dates";
 
 const ok = (c: unknown, m: string) => { if (!c) { console.error("FAIL", m); process.exitCode = 1; } else console.log("ok  ", m); };
@@ -82,6 +82,15 @@ async function main() {
   const o = (await opt())!;
   ok(o.assumed && o.tenure === 6 && o.monthlyMinor > 1000000 && o.interestMinor > 0 && (await getAutoEmi(ws)).on, "switched on, a big item gets 6 months at the assumed rate");
   await setAutoEmi(ws, { on: false, overMinor: 5000000, months: 6, ratePct: 18 });
+
+  // buying from the list records what was really paid
+  const [bank] = await db.select().from(schema.accounts).where(eq(schema.accounts.workspaceId, ws));
+  const fan = await addWish(ws, { ...base, title: "Fan", priceMinor: 200000, quantity: 2, type: "need", priority: 1, downPaymentMinor: null, emiTenureMonths: null, emiRatePct: null });
+  await recordPurchase(ws, "INR", { id: fan, count: 1, on: today, expense: { amountMinor: 175000, accountId: bank.id, categoryId: null } });
+  const paid = (await db.select().from(schema.transactions).where(eq(schema.transactions.workspaceId, ws))).find((t) => t.payee === "Fan")!;
+  ok(paid.amountMinor === 175000 && paid.kind === "expense" && (await listWishlist(ws)).find((i) => i.id === fan)!.boughtCount === 1, "a purchase books the price paid and counts one as bought");
+  await recordPurchase(ws, "INR", { id: fan, count: 1, on: today, expense: null });
+  ok((await listWishlist(ws)).find((i) => i.id === fan)!.status === "bought" && (await db.select().from(schema.transactions).where(eq(schema.transactions.workspaceId, ws))).filter((t) => t.payee === "Fan").length === 1, "it can be marked bought without adding a transaction");
 }
 
 main().then(() => process.exit(process.exitCode ?? 0), (e) => { console.error(e); process.exit(1); });

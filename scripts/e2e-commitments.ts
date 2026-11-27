@@ -80,6 +80,15 @@ async function main() {
   let twice = false;
   try { await markPaid(ws, "rule", gym.sourceId, gym.dueOn); } catch { twice = true; }
   ok(twice, "marking the same payment paid twice is refused");
+
+  // paying early books the money today; paying late books it on the due date
+  await createRule(ws, { name: "Early", kind: "expense", amountMinor: 1000, frequency: "monthly", intervalCount: 1, startOn: shiftDays(today, 9), endOn: null, maxCount: null, anchor: "start_day", weekendShift: "none", matchPattern: "nomatch-early", accountId: null, categoryId: null });
+  const early = (await listExpected(ws, today, shiftDays(today, 20))).find((e) => e.name === "Early")!;
+  await markPaid(ws, "rule", early.sourceId, early.dueOn);
+  const booked = (await db.select().from(schema.transactions).where(eq(schema.transactions.workspaceId, ws))).find((t) => t.payee === "Early")!;
+  ok(booked.occurredOn === today, "a payment marked early is dated today");
+  ok((await listExpected(ws, today, shiftDays(today, 20))).find((e) => e.name === "Early")!.status === "paid", "and it no longer shows as due");
+  ok((await db.select().from(schema.transactions).where(eq(schema.transactions.workspaceId, ws))).some((t) => t.payee === "Gym" && t.occurredOn === shiftDays(today, -5)), "a late one keeps its due date");
 }
 
 main().then(() => process.exit(process.exitCode ?? 0), (e) => { console.error(e); process.exit(1); });
