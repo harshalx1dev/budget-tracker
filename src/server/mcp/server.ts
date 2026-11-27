@@ -101,7 +101,7 @@ export function createBudgetServer(auth: McpAuth) {
     const a = await affordability(ws.id, home);
     return {
       buffer: toMajor(a.buffer, home), maxEmiShareOfIncomePercent: a.maxRatioPct,
-      items: a.items.map((i) => ({ title: clip(i.title, 80), price: toMajor(i.remainingMinor, home), priceEach: toMajor(i.priceMinor, home), quantity: i.quantity, bought: i.boughtCount, type: i.type, priority: i.priority, status: i.status, links: i.links.map((l) => ({ url: clip(l.url, 300), label: clip(l.label, 60), price: l.priceMinor ? toMajor(l.priceMinor, home) : null })), canPayInFullFrom: i.outrightMonth, canTakeEmiFrom: i.emi ? { month: i.emi.month, monthlyEmi: toMajor(i.emi.emiMinor, home), months: i.emi.tenure } : null })),
+      items: a.items.map((i) => ({ title: clip(i.title, 80), price: toMajor(i.remainingMinor, home), priceEach: toMajor(i.priceMinor, home), quantity: i.quantity, bought: i.boughtCount, type: i.type, priority: i.priority, status: i.status, emiOption: i.emiOption ? { monthly: toMajor(i.emiOption.monthlyMinor, home), months: i.emiOption.tenure, yearlyRatePercent: i.emiOption.ratePct, rateIsAssumed: i.emiOption.assumed, interest: toMajor(i.emiOption.interestMinor, home) } : null, links: i.links.map((l) => ({ url: clip(l.url, 300), label: clip(l.label, 60), price: l.priceMinor ? toMajor(l.priceMinor, home) : null })), canPayInFullFrom: i.outrightMonth, canTakeEmiFrom: i.emi ? { month: i.emi.month, monthlyEmi: toMajor(i.emi.emiMinor, home), months: i.emi.tenure } : null })),
       suggestedOrder: a.order.map((o) => ({ title: clip(o.title, 80), month: o.month, method: o.method, monthlyEmi: o.emiMinor === null ? null : toMajor(o.emiMinor, home), months: o.tenure })),
     };
   });

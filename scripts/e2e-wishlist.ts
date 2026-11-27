@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { db, schema } from "@/server/db";
 import { createLoan, createRule } from "@/server/services/commitments";
 import { setBuffer } from "@/server/services/planner";
-import { addLink, addWish, affordability, buyUnits, chooseLink, listWishlist, setMaxEmiRatio, setWishStatus, updateWish } from "@/server/services/wishlist";
+import { addLink, addWish, affordability, buyUnits, chooseLink, getAutoEmi, listWishlist, setAutoEmi, setMaxEmiRatio, setWishStatus, updateWish } from "@/server/services/wishlist";
 import { shiftDays, todayISO } from "@/lib/dates";
 
 const ok = (c: unknown, m: string) => { if (!c) { console.error("FAIL", m); process.exitCode = 1; } else console.log("ok  ", m); };
@@ -72,6 +72,16 @@ async function main() {
   ok((await find()).status === "bought" && (await find()).title === "Panel lights", "lowering the quantity to what is bought finishes the item");
   await setWishStatus(ws, lights, "wanted", null);
   ok((await find()).boughtCount === 0 && (await find()).status === "wanted", "putting it back on the list starts the count again");
+
+  // the standing EMI offer for big purchases
+  await setAutoEmi(ws, { on: false, overMinor: 5000000, months: 6, ratePct: 18 });
+  const car = await addWish(ws, { ...base, title: "Big thing", priceMinor: 6000000, type: "want", priority: 3, downPaymentMinor: null, emiTenureMonths: null, emiRatePct: null });
+  const opt = async () => (await affordability(ws, "INR")).items.find((i) => i.id === car)!.emiOption;
+  ok((await opt()) === null, "no EMI is offered while the setting is off");
+  await setAutoEmi(ws, { on: true, overMinor: 5000000, months: 6, ratePct: 18 });
+  const o = (await opt())!;
+  ok(o.assumed && o.tenure === 6 && o.monthlyMinor > 1000000 && o.interestMinor > 0 && (await getAutoEmi(ws)).on, "switched on, a big item gets 6 months at the assumed rate");
+  await setAutoEmi(ws, { on: false, overMinor: 5000000, months: 6, ratePct: 18 });
 }
 
 main().then(() => process.exit(process.exitCode ?? 0), (e) => { console.error(e); process.exit(1); });

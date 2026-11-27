@@ -66,6 +66,12 @@ export const workspaces = pgTable("workspaces", {
   bufferMinor: bigint("buffer_minor", { mode: "number" }).notNull().default(0),
   // Largest share of monthly income that all EMIs together may take when judging a new one.
   maxEmiRatioPct: integer("max_emi_ratio_pct").notNull().default(40),
+  // Off by default. When on, wishlist items above the amount also get an EMI option on these terms.
+  autoEmi: boolean("auto_emi").notNull().default(false),
+  autoEmiOverMinor: bigint("auto_emi_over_minor", { mode: "number" }).notNull().default(5_000_000),
+  autoEmiMonths: integer("auto_emi_months").notNull().default(6),
+  // An assumed yearly rate: banks and offers differ, so it is the user's to change.
+  autoEmiRatePct: numeric("auto_emi_rate_pct", { precision: 7, scale: 4 }).notNull().default("18"),
   // Emergency fund: how many months of essential spending to hold, and the account that holds it.
   emergencyMonths: integer("emergency_months").notNull().default(6),
   emergencyAccountId: text("emergency_account_id"),

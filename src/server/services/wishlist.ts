@@ -3,7 +3,8 @@ import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db, schema } from "@/server/db";
 import { forecast, listGoals, safeToSpend } from "@/server/services/planner";
 import { todayISO } from "@/lib/dates";
-import { bestPlan, emiPlan, outrightPlan, sequence, type State, type Wish } from "@/lib/affordability";
+import { pmt } from "@/lib/schedule";
+import { bestPlan, emiTerms, emiPlan, outrightPlan, sequence, type State, type Wish } from "@/lib/affordability";
 
 const { categories, wishlistItems, wishlistLinks, workspaces } = schema;
 
@@ -87,13 +88,25 @@ export async function setMaxEmiRatio(workspaceId: string, pct: number) {
   await db.update(workspaces).set({ maxEmiRatioPct: pct }).where(eq(workspaces.id, workspaceId));
 }
 
+export async function getAutoEmi(workspaceId: string) {
+  const [r] = await db.select({ on: workspaces.autoEmi, overMinor: workspaces.autoEmiOverMinor, months: workspaces.autoEmiMonths, ratePct: workspaces.autoEmiRatePct }).from(workspaces).where(eq(workspaces.id, workspaceId));
+  return { ...r, ratePct: Number(r.ratePct) };
+}
+
+export async function setAutoEmi(workspaceId: string, v: { on: boolean; overMinor: number; months: number; ratePct: number }) {
+  if (!Number.isInteger(v.months) || v.months < 1 || v.months > 120) throw new Error("Months must be 1 to 120");
+  if (!(v.ratePct >= 0 && v.ratePct <= 100)) throw new Error("Interest rate must be between 0 and 100");
+  if (!Number.isInteger(v.overMinor) || v.overMinor < 0) throw new Error("Enter the amount as a number");
+  await db.update(workspaces).set({ autoEmi: v.on, autoEmiOverMinor: v.overMinor, autoEmiMonths: v.months, autoEmiRatePct: String(v.ratePct) }).where(eq(workspaces.id, workspaceId));
+}
+
 const HORIZON = 24;
 
 /** What can be bought and when, from the forecast and your rules. Plain arithmetic: no AI involved. */
 async function loadState(workspaceId: string, homeCurrency: string) {
   const [fc, [ws], sts, goals] = await Promise.all([
     forecast(workspaceId, homeCurrency, HORIZON),
-    db.select({ buffer: workspaces.bufferMinor, ratio: workspaces.maxEmiRatioPct }).from(workspaces).where(eq(workspaces.id, workspaceId)),
+    db.select({ buffer: workspaces.bufferMinor, ratio: workspaces.maxEmiRatioPct, on: workspaces.autoEmi, overMinor: workspaces.autoEmiOverMinor, months: workspaces.autoEmiMonths, ratePct: workspaces.autoEmiRatePct }).from(workspaces).where(eq(workspaces.id, workspaceId)),
     safeToSpend(workspaceId, homeCurrency),
     listGoals(workspaceId),
   ]);
@@ -124,10 +137,16 @@ export async function checkWish(workspaceId: string, homeCurrency: string, w: Wi
 export async function affordability(workspaceId: string, homeCurrency: string) {
   const [items, { fc, state, ws }] = await Promise.all([listWishlist(workspaceId), loadState(workspaceId, homeCurrency)]);
   const active = items.filter((i) => i.status === "wanted" || i.status === "planned");
-  const wishes: Wish[] = active.map((i) => ({
-    id: i.id, title: i.title, priceMinor: i.remainingMinor, type: i.type, priority: i.priority,
-    financing: i.emiTenureMonths ? { downMinor: Math.min(i.downPaymentMinor ?? 0, i.remainingMinor), tenure: i.emiTenureMonths, ratePct: Number(i.emiRatePct ?? 0) } : null,
-  }));
+  const auto = { on: ws.on, overMinor: ws.overMinor, months: ws.months, ratePct: Number(ws.ratePct) };
+  const terms = new Map(active.map((i) => [i.id, emiTerms({ amountMinor: i.remainingMinor, downMinor: i.downPaymentMinor, tenure: i.emiTenureMonths, ratePct: i.emiRatePct === null ? null : Number(i.emiRatePct) }, auto)]));
+  const wishes: Wish[] = active.map((i) => ({ id: i.id, title: i.title, priceMinor: i.remainingMinor, type: i.type, priority: i.priority, financing: terms.get(i.id) ?? null }));
+  // What each would cost a month on those terms, whether or not the plan can fit it in yet.
+  const option = (id: string, amountMinor: number) => {
+    const t = terms.get(id);
+    if (!t) return null;
+    const monthlyMinor = pmt(amountMinor - t.downMinor, t.ratePct, t.tenure);
+    return { ...t, monthlyMinor, interestMinor: Math.max(0, monthlyMinor * t.tenure - (amountMinor - t.downMinor)) };
+  };
   const monthOf = (idx: number) => fc.rows[idx].month;
   const independent = new Map(wishes.map((w) => {
     const o = outrightPlan(w, state), e = emiPlan(w, state);
@@ -145,7 +164,7 @@ export async function affordability(workspaceId: string, homeCurrency: string) {
     interestMinor: plan?.method === "emi" ? plan.totalInterestMinor : null,
   }));
   return {
-    items: items.map((i) => ({ ...i, ...(independent.get(i.id) ? { outrightMonth: independent.get(i.id)!.outright, emi: independent.get(i.id)!.emi } : { outrightMonth: null, emi: null }) })),
+    items: items.map((i) => ({ ...i, emiOption: option(i.id, i.remainingMinor), ...(independent.get(i.id) ? { outrightMonth: independent.get(i.id)!.outright, emi: independent.get(i.id)!.emi } : { outrightMonth: null, emi: null }) })),
     order,
     buffer: ws.buffer,
     maxRatioPct: ws.ratio,

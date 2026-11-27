@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { apply, bestPlan, emiFor, emiPlan, outrightPlan, sequence, type State, type Wish } from "./affordability";
+import { emiTerms, apply, bestPlan, emiFor, emiPlan, outrightPlan, sequence, type State, type Wish } from "./affordability";
 
 // ₹ amounts in paise. Balance grows by ₹20,000 a month from ₹30,000; income ₹60,000; one existing EMI of ₹10,000 until month 3.
 const base = (over: Partial<State> = {}): State => ({
@@ -83,4 +83,13 @@ test("apply: an outright purchase lowers every later balance; EMI adds load", ()
   const s3 = apply({ method: "emi", index: 0, downMinor: 0, emiMinor: 300000, tenure: 2, totalInterestMinor: 0, ratioUnknown: false }, f, base());
   assert.equal(s3.emiLoad[1], base().emiLoad[1] + 300000);
   assert.equal(s3.emiLoad[3], base().emiLoad[3]);
+});
+
+test("emi terms: an item's own terms win; the standing offer only applies when on and above the amount", () => {
+  const auto = { on: true, overMinor: 5_000_000, months: 6, ratePct: 18 };
+  const item = { amountMinor: 6_000_000, downMinor: null, tenure: null, ratePct: null };
+  assert.deepEqual(emiTerms(item, auto), { downMinor: 0, tenure: 6, ratePct: 18, assumed: true });
+  assert.equal(emiTerms(item, { ...auto, on: false }), null);
+  assert.equal(emiTerms({ ...item, amountMinor: 5_000_000 }, auto), null);
+  assert.deepEqual(emiTerms({ ...item, tenure: 12, ratePct: 0, downMinor: 1000 }, auto), { downMinor: 1000, tenure: 12, ratePct: 0, assumed: false });
 });

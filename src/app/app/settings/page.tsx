@@ -1,5 +1,7 @@
 import { Suspense } from "react";
-import { BellRing, Download, Plug, ShieldCheck, Sparkles, Tags, User, Wallet } from "lucide-react";
+import { AutoEmiForm } from "@/components/auto-emi-form";
+import { getAutoEmi } from "@/server/services/wishlist";
+import { BellRing, CalendarClock, Download, Plug, ShieldCheck, Sparkles, Tags, User, Wallet } from "lucide-react";
 import { SectionHead } from "@/components/section-head";
 import { PageSkeleton } from "@/components/page-skeleton";
 import Link from "next/link";
@@ -15,7 +17,7 @@ export const metadata = { title: "Settings" };
 
 async function SettingsLoader() {
   const { user, workspace } = await requireWorkspace();
-  const [connected, used, tokens] = await Promise.all([hasKey(user.id), usageToday(user.id), listTokens(user.id)]);
+  const [connected, used, tokens, emi] = await Promise.all([hasKey(user.id), usageToday(user.id), listTokens(user.id), getAutoEmi(workspace.id)]);
   const endpoint = `${process.env.BETTER_AUTH_URL ?? "http://localhost:3000"}/api/mcp`;
   return (
     <div className="settle stack">
@@ -30,6 +32,10 @@ async function SettingsLoader() {
           <p><Link href="/app/admin" className="link">Accounts and usage across the app</Link></p>
         </section>
       )}
+      <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
+        <SectionHead icon={CalendarClock}>EMI for big purchases</SectionHead>
+        <AutoEmiForm key={JSON.stringify(emi)} on={emi.on} over={String(emi.overMinor / 100)} months={emi.months} rate={String(emi.ratePct)} />
+      </section>
       <section className="well stack-sm" style={{ padding: "var(--space-lg)" }}>
         <SectionHead icon={Sparkles}>AI</SectionHead>
         <AiKeyForm connected={connected} usedToday={used} />

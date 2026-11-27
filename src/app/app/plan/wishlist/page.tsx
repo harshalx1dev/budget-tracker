@@ -56,6 +56,9 @@ async function WishlistLoader() {
                   <p className="when" data-tone={w.tone}>{w.text}</p>
                   <span className="head-actions">{i.quantity > 1 ? <BuyUnitsForm key={i.boughtCount} id={o.id} left={i.quantity - i.boughtCount} /> : <BoughtButton id={o.id} />}<RemoveIcon kind="wish" id={o.id} label={`Delete ${o.title}`} /></span>
                 </div>
+                {i.emiOption && (
+                  <p className="label">On EMI: {money(i.emiOption.monthlyMinor)} a month for {i.emiOption.tenure} months{i.emiOption.downMinor ? ` after ${money(i.emiOption.downMinor)} down` : ""}, at {i.emiOption.ratePct}%{i.emiOption.assumed ? " (your assumed rate)" : ""}{i.emiOption.interestMinor > 0 ? `, ${money(i.emiOption.interestMinor)} interest` : ""}.</p>
+                )}
                 <details className="wish__more">
                   <summary className="link">Details, options and editing</summary>
                   <div className="stack-sm">

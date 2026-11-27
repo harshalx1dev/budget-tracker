@@ -16,6 +16,20 @@ export type State = {
   maxRatioPct: number;
 };
 
+/**
+ * The EMI terms to judge a purchase on: its own if it has them, otherwise the standing offer for big purchases
+ * when that is switched on.
+ */
+export function emiTerms(
+  item: { amountMinor: number; downMinor: number | null; tenure: number | null; ratePct: number | null },
+  auto: { on: boolean; overMinor: number; months: number; ratePct: number },
+) {
+  const downMinor = Math.min(item.downMinor ?? 0, item.amountMinor);
+  if (item.tenure) return { downMinor, tenure: item.tenure, ratePct: item.ratePct ?? 0, assumed: false };
+  if (auto.on && item.amountMinor > auto.overMinor) return { downMinor, tenure: auto.months, ratePct: auto.ratePct, assumed: true };
+  return null;
+}
+
 export type Wish = {
   id: string;
   title: string;

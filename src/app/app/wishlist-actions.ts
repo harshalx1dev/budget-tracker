@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireWorkspace } from "@/server/session";
-import { addLink, addWish, buyUnits, chooseLink, deleteLink, deleteWish, setMaxEmiRatio, setWishStatus, updateWish, type NewWish } from "@/server/services/wishlist";
+import { addLink, addWish, buyUnits, chooseLink, deleteLink, deleteWish, setAutoEmi, setMaxEmiRatio, setWishStatus, updateWish, type NewWish } from "@/server/services/wishlist";
 import { toMinor } from "@/lib/money";
 import { todayISO } from "@/lib/dates";
 
@@ -103,6 +103,14 @@ export async function removeWishAction(id: string) {
   const { workspace } = await requireWorkspace();
   await deleteWish(workspace.id, id);
   refresh();
+}
+
+export async function setAutoEmiAction(_: WishState, fd: FormData): Promise<WishState> {
+  const { workspace } = await requireWorkspace();
+  const over = toMinor(String(fd.get("over") ?? ""), workspace.homeCurrency);
+  const months = num(fd.get("months")), rate = num(fd.get("rate"));
+  if (!over || months === null || rate === null || Number.isNaN(months) || Number.isNaN(rate)) return { error: "Fill in the amount, the months and the rate" };
+  try { await setAutoEmi(workspace.id, { on: fd.get("on") === "on", overMinor: over, months, ratePct: rate }); refresh(); return { message: "Saved" }; } catch (e) { return fail(e); }
 }
 
 export async function setRatioAction(_: WishState, fd: FormData): Promise<WishState> {
