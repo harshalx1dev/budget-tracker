@@ -18,6 +18,7 @@ import { formatDay, thisMonth } from "@/lib/dates";
 import { QuickAddBar } from "@/components/quick-add-bar";
 import { TransactionForm } from "@/components/transaction-form";
 import { LedgerTable } from "@/components/ledger-table";
+import { OverviewPanels } from "@/components/overview-panels";
 
 async function OverviewLoader() {
   const { user, workspace } = await requireWorkspace();
@@ -78,12 +79,14 @@ async function OverviewLoader() {
       </section>
       <FreeToSpendWorking sts={sts} home={home} />
       </>}
+      {/* the panels read the long forecast, so the headline above does not wait for them */}
+      {!empty && <Suspense fallback={<div className="panels"><div className="well panel panel--loading" data-wide /></div>}><OverviewPanels workspaceId={workspace.id} home={home} /></Suspense>}
       {hasForeign && <p className="label">Balance counts {home} accounts only until exchange rates arrive.</p>}
       <section aria-labelledby="add-h" className="stack-sm">
         <h2 id="add-h">Quick add</h2>
         <QuickAddBar />
         <details className="more">
-          <summary className="pill">Full form</summary>
+          <summary className="btn btn--secondary">Full form</summary>
         <TransactionForm accounts={accounts} categories={categories} homeCurrency={home} />
         </details>
       </section>
