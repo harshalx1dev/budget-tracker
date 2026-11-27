@@ -1,5 +1,7 @@
 import { Suspense } from "react";
 import { Summary } from "@/components/summary";
+import { CardSection } from "@/components/card-section";
+import { listCards } from "@/server/services/cards";
 import Link from "next/link";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { ArchiveButton, LoanForm, MarkPaidButton, MatchNowButton, RecurringForm } from "@/components/commit-forms";
@@ -31,6 +33,7 @@ async function CommitmentsLoader() {
     return { l, next: left[0], remaining: left.length, ends: rows.at(-1)?.dueOn, outstanding };
   }));
   const monthly = loanRows.reduce((s, r) => s + (r.next?.amountMinor ?? 0), 0);
+  const cards = await listCards(workspace.id);
   const accountOpts = accounts.filter((a) => !isAssetType(a.type)).map((a) => ({ id: a.id, name: a.name }));
 
   return (
@@ -38,6 +41,9 @@ async function CommitmentsLoader() {
       <div className="head-row"><h1>Bills & EMIs</h1><MatchNowButton /></div>
 
       {loanRows.length > 0 && <Summary figure={formatMinor(monthly, home, { whole: true })} caption="goes to EMIs each month right now" />}
+
+      <CardSection cards={cards} payFrom={["bank", "wallet", "cash"].flatMap((t) => accounts.filter((a) => a.type === t))} />
+      {cards.length === 0 && <p className="label">Pay by credit card? <Link href="/app/accounts" className="link">Add the card as an account</Link> and its bill shows here.</p>}
 
       <section className="stack-sm" aria-labelledby="up-h">
         <h2 id="up-h">Coming up</h2>

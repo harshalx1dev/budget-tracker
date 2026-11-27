@@ -5,6 +5,8 @@ import { PageSkeleton } from "@/components/page-skeleton";
 import { requireWorkspace } from "@/server/session";
 import { listAccounts } from "@/server/services/ledger";
 import { listAssets } from "@/server/services/savings";
+import { listCards } from "@/server/services/cards";
+import { CardSection } from "@/components/card-section";
 import { formatMinor } from "@/lib/money";
 import { isAssetType, TYPE_LABELS } from "@/lib/savings";
 import { CreditCard, Landmark, TrendingUp, Wallet } from "lucide-react";
@@ -15,7 +17,7 @@ export const metadata = { title: "Accounts" };
 
 async function AccountsLoader() {
   const { workspace } = await requireWorkspace();
-  const [accounts, assets] = await Promise.all([listAccounts(workspace.id), listAssets(workspace.id)]);
+  const [accounts, assets, cards] = await Promise.all([listAccounts(workspace.id), listAssets(workspace.id), listCards(workspace.id)]);
   // Savings and investments show what they are worth today, the same figure as on the savings page.
   const worth = new Map(assets.map((a) => [a.id, a.valueMinor]));
   return (
@@ -32,7 +34,8 @@ async function AccountsLoader() {
           </tbody>
         </table>
       </section>
-      <AddPanel label="Add an account"><AccountForm homeCurrency={workspace.homeCurrency} /></AddPanel>
+      <CardSection cards={cards} payFrom={["bank", "wallet", "cash"].flatMap((t) => accounts.filter((a) => a.type === t))} />
+      <AddPanel label="Add an account or credit card"><AccountForm homeCurrency={workspace.homeCurrency} /></AddPanel>
       <section className="stack-sm" aria-labelledby="mv-h">
         <h2 id="mv-h">Move money</h2>
         <TransferForm accounts={accounts} />

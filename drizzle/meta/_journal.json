@@ -78,6 +78,13 @@
       "when": 1795729212682,
       "tag": "0010_handy_chameleon",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795778032519,
+      "tag": "0011_yielding_red_wolf",
+      "breakpoints": true
     }
   ]
 }

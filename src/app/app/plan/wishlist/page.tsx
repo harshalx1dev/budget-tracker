@@ -37,7 +37,7 @@ async function WishlistLoader() {
   return (
     <div className="settle stack">
       <h1>Want to buy</h1>
-      {list.length > 0 && <p className="label">These dates use all the money in your accounts, not only what is free this month.</p>}
+      {list.length > 0 && <p className="label">These dates use the money in your accounts and what is coming, leaving alone anything set aside for goals or kept aside.</p>}
       {list.length === 0 ? (
         <div className="well empty"><h3>Nothing here yet</h3><p>Add something you want and the app tells you when you can afford it.</p></div>
       ) : (

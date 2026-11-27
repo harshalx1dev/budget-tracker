@@ -2,7 +2,7 @@ import Link from "next/link";
 import { SafeSwitch } from "./safe-switch";
 import { BufferForm } from "./plan-forms";
 import { formatMinor } from "@/lib/money";
-import { formatDay } from "@/lib/dates";
+import { formatDay, todayISO } from "@/lib/dates";
 import type { safeToSpend } from "@/server/services/planner";
 
 type Sts = Awaited<ReturnType<typeof safeToSpend>>;
@@ -45,9 +45,10 @@ export function FreeToSpendWorking({ sts, home }: { sts: Sts; home: string }) {
     <details className="more">
       <summary className="btn btn--secondary">How is this worked out?</summary>
       <div className="stack-sm">
-        <div className="well table-wrap">{table(m.fromPayday ? "Since payday" : "This month", [["Money received", m.income], ["Already spent", -m.spent], ["Moved to savings", -m.saved], ["Bills and EMIs still to pay", -sts.dueOutflows], ["Saving for goals", -m.goalSetAside]])}</div>
+        <div className="well table-wrap">{table(m.fromPayday ? "Since payday" : "This month", [["Money received", m.income], ["Already spent", -m.spent], ["Card bills paid", -m.cardPaid], ["Moved to savings", -m.saved], ["Bills and EMIs still to pay", -m.billsDue], ["Card bills to pay", -m.cardDue], ["Saving for goals", -m.goalSetAside]])}</div>
         <div className="well table-wrap">{table("All my money", [["In your accounts", sts.balance], ["Bills and EMIs still to pay", -sts.dueOutflows], ["Saving for goals", -sts.goalSetAside], ["Kept aside", -sts.buffer]])}</div>
-        {sts.due.length > 0 && <p className="label">Still to pay: {sts.due.map((d) => `${d.name} ${formatMinor(d.amountMinor, home)} on ${formatDay(d.dueOn)}`).join(", ")}.</p>}
+        {m.due.length > 0 && <p className="label">Still to pay: {m.due.map((d) => `${d.name} ${formatMinor(d.amountMinor, home)} ${d.dueOn < todayISO() ? "overdue since" : "on"} ${formatDay(d.dueOn)}`).join(", ")}.</p>}
+        {m.onCards > 0 && <p className="label">{formatMinor(m.onCards, home)} spent on cards is not billed yet, so a later salary pays it.</p>}
         <p className="label">Goals marked Flexible only count once you actually put money aside. {<Link href="/app/plan/goals" className="link">Change goals</Link>}</p>
         <p className="label">Keep aside: money you never want counted as free.</p>
         <BufferForm current={String(sts.buffer / 100)} />

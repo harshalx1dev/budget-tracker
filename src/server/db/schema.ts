@@ -96,6 +96,9 @@ export const accounts = pgTable("accounts", {
   // Words that route quick-add entries here, e.g. ["upi", "gpay"].
   aliases: text("aliases").array().notNull().default([]),
   openingBalanceMinor: money("opening_balance_minor").notNull().default(0),
+  // Credit cards only: the day of the month the bill is made and the day it must be paid.
+  statementDay: integer("statement_day"),
+  dueDay: integer("due_day"),
   archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: createdAt(),
 }, (t) => [index("accounts_workspace_idx").on(t.workspaceId)]);

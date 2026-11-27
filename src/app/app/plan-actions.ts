@@ -36,6 +36,7 @@ export async function addGoalAction(_: PlanState, fd: FormData): Promise<PlanSta
   if (!name || !target) return { error: "Name and target amount are needed" };
   if (date && !date.success) return { error: "Target date is not valid" };
   if (date?.success && date.data <= todayISO()) return { error: "Target date should be in the future" };
+  if (fd.get("fixed") === "yes" && !date) return { error: "A fixed goal needs a date, so the app knows how much to hold back each month" };
   try { await addGoal(workspace.id, name, target, date?.success ? date.data : null, String(fd.get("accountId") ?? "") || null, fd.get("fixed") === "yes"); refresh(); return { message: "Goal added" }; } catch (e) { return fail(e); }
 }
 

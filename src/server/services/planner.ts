@@ -2,6 +2,7 @@ import "server-only";
 import { and, asc, eq, gte, inArray, isNull, lt, notExists, sql } from "drizzle-orm";
 import { db, schema } from "@/server/db";
 import { listAccounts } from "@/server/services/ledger";
+import { listCards } from "@/server/services/cards";
 import { listExpected } from "@/server/services/commitments";
 import { listAssets, upcomingMaturities } from "@/server/services/savings";
 import { ASSET_TYPES, isAssetType } from "@/lib/savings";
@@ -98,15 +99,16 @@ export async function setBuffer(workspaceId: string, bufferMinor: number) {
 
 export async function safeToSpend(workspaceId: string, homeCurrency: string) {
   const today = todayISO();
-  const [accts, expected, goalRows, [ws]] = await Promise.all([
+  const [accts, expected, goalRows, [ws], cards] = await Promise.all([
     listAccounts(workspaceId),
     listExpected(workspaceId, shiftDays(today, -45), shiftDays(today, 70)),
     listGoals(workspaceId),
     db.select({ buffer: workspaces.bufferMinor }).from(workspaces).where(eq(workspaces.id, workspaceId)),
+    listCards(workspaceId),
   ]);
   const balance = accts.filter((a) => a.currency === homeCurrency && !isAssetType(a.type)).reduce((s, a) => s + a.balanceMinor, 0);
-  // Earlier dates are only used to find the last payday; what is owed is counted from today on.
-  const unpaid = expected.filter((e) => e.status !== "paid" && e.dueOn >= today);
+  // A bill that is late is still owed, so unpaid expenses count however old; income only counts from today.
+  const unpaid = expected.filter((e) => e.status !== "paid" && (e.kind === "expense" || e.dueOn >= today));
   const nextIncome = unpaid.filter((e) => e.kind === "income").map((e) => e.dueOn).sort()[0] ?? null;
   // Without a known payday the horizon is the end of this month.
   const horizon = nextIncome ?? shiftDays(monthEnd(today.slice(0, 7)), 1);
@@ -126,8 +128,21 @@ export async function safeToSpend(workspaceId: string, homeCurrency: string) {
   })));
   const goalSetAside = holds.fromAccounts;
   const calc = computeSafeToSpend({ balance, dueOutflows, goalSetAside, buffer: ws.buffer, days: daysBetween(today, horizon) });
-  const flow = await cycleFlow(workspaceId, homeCurrency, cycleStart, today);
-  const monthly = { cycleStart, fromPayday: lastPay !== null, ...flow, goalSetAside: holds.fromCycle, ...computeMonthlySafe({ ...flow, dueOutflows, goalSetAside: holds.fromCycle, accountSafe: calc.safe, days: calc.days }) };
+  // Cards with known dates are counted when their bill is paid, as the salary that pays it sees it.
+  const billed = cards.filter((c) => c.bill && c.currency === homeCurrency);
+  const billedIds = new Set(billed.map((c) => c.id));
+  const cardDue = billed.filter((c) => c.bill!.toPay > 0 && c.bill!.dueOn < horizon).map((c) => ({ name: `${c.name} bill`, amountMinor: c.bill!.toPay, dueOn: c.bill!.dueOn }));
+  const cardDueTotal = cardDue.reduce((s, c) => s + c.amountMinor, 0);
+  // A subscription charged to such a card is paid through the card's bill, not out of this salary directly.
+  const billsDue = due.filter((e) => !(e.accountId && billedIds.has(e.accountId)));
+  const billsDueTotal = billsDue.reduce((s, e) => s + e.amountMinor, 0);
+  const flow = await cycleFlow(workspaceId, homeCurrency, cycleStart, today, billedIds);
+  const monthly = {
+    cycleStart, fromPayday: lastPay !== null, ...flow, goalSetAside: holds.fromCycle, billsDue: billsDueTotal, cardDue: cardDueTotal,
+    onCards: billed.reduce((s, c) => s + c.bill!.unbilled, 0),
+    due: [...billsDue.map((e) => ({ name: e.name, amountMinor: e.amountMinor, dueOn: e.dueOn })), ...cardDue],
+    ...computeMonthlySafe({ income: flow.income, spent: flow.spent + flow.cardPaid, saved: flow.saved, dueOutflows: billsDueTotal + cardDueTotal, goalSetAside: holds.fromCycle, accountSafe: calc.safe, days: calc.days }),
+  };
   return { balance, dueOutflows, due, goalSetAside, buffer: ws.buffer, nextIncome, horizon, incomeKnown: nextIncome !== null, monthly, ...calc };
 }
 
@@ -140,18 +155,19 @@ async function paidOn(workspaceId: string, expected: Awaited<ReturnType<typeof l
 }
 
 /** Money in, spent, and moved into savings between two dates, in the home currency. */
-async function cycleFlow(workspaceId: string, home: string, from: string, to: string) {
+async function cycleFlow(workspaceId: string, home: string, from: string, to: string, billedCards: Set<string>) {
   const { accounts } = schema;
-  const rows = await db.select({ kind: transactions.kind, amount: transactions.amountMinor, transferId: transactions.transferId, type: accounts.type })
+  const rows = await db.select({ accountId: transactions.accountId, kind: transactions.kind, amount: transactions.amountMinor, transferId: transactions.transferId, type: accounts.type })
     .from(transactions).innerJoin(accounts, eq(accounts.id, transactions.accountId))
     .where(and(eq(transactions.workspaceId, workspaceId), eq(transactions.currency, home), gte(transactions.occurredOn, from), lt(transactions.occurredOn, shiftDays(to, 1))));
-  let income = 0, spent = 0, saved = 0;
+  let income = 0, spent = 0, saved = 0, cardPaid = 0;
   for (const r of rows) {
     const asset = (ASSET_TYPES as readonly string[]).includes(r.type);
-    if (r.transferId) { if (asset) saved += r.kind === "income" ? r.amount : -r.amount; }
+    if (billedCards.has(r.accountId)) { if (r.transferId && r.kind === "income") cardPaid += r.amount; }
+    else if (r.transferId) { if (asset) saved += r.kind === "income" ? r.amount : -r.amount; }
     else if (!asset) { if (r.kind === "income") income += r.amount; else spent += r.amount; }
   }
-  return { income, spent, saved };
+  return { income, spent, saved, cardPaid };
 }
 
 /* ---------- forecast ---------- */
@@ -163,9 +179,10 @@ export async function forecast(workspaceId: string, homeCurrency: string, count 
   for (let i = 1; i < count; i++) yms.push(nextMonth(yms[i - 1]));
   const endDate = monthEnd(yms.at(-1)!);
 
-  const [accts, expectedAll, status, maturities] = await Promise.all([listAccounts(workspaceId), listExpected(workspaceId, today, endDate), budgetStatus(workspaceId, thisYM), upcomingMaturities(workspaceId, today, endDate)]);
+  const [accts, expectedAll, status, maturities] = await Promise.all([listAccounts(workspaceId), listExpected(workspaceId, shiftDays(today, -45), endDate), budgetStatus(workspaceId, thisYM), upcomingMaturities(workspaceId, today, endDate)]);
   const startBalance = accts.filter((a) => a.currency === homeCurrency && !isAssetType(a.type)).reduce((s, a) => s + a.balanceMinor, 0);
-  const expected = expectedAll.filter((e) => e.status !== "paid");
+  // Bills that are late still have to be paid, so they fall in this month.
+  const expected = expectedAll.filter((e) => e.status !== "paid" && (e.kind === "expense" || e.dueOn >= today)).map((e) => (e.dueOn < today ? { ...e, dueOn: today } : e));
 
   // Recent uncommitted spend (not matched to a loan or rule) as the baseline for categories without a budget.
   const histFrom = addMonths(`${thisYM}-01`, -3).slice(0, 7);

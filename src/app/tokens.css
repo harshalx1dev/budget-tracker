@@ -1,4 +1,4 @@
-/* Passbook green and brass: mineral-white page, deep green cloth sidebar, one emerald for action, brass for stamps and highlights. Dark mode deepens the same green. */
+/* Graphite: neutral greys, near-black action colour, no hue except success and error. Dark mode inverts the action colour. */
 @theme static {
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
@@ -16,40 +16,40 @@
   --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 
-  --color-paper: #f3f4f1;
+  --color-paper: #f1f1f1;
   --color-paper-2: #ffffff;
-  --color-paper-3: #e8ebe6;
-  --color-ink: #14211c;
-  --color-ink-2: #2f3f38;
-  --color-muted: #5b6a63;
-  --color-rule: #dfe3dd;
-  --color-rule-2: #8a978f;
-  --color-accent: #15614a;
-  --color-accent-deep: #0e4a38;
-  --color-accent-soft: #dcebe3;
+  --color-paper-3: #e8e8e9;
+  --color-ink: #131415;
+  --color-ink-2: #2d2f31;
+  --color-muted: #5c6064;
+  --color-rule: #e0e0e1;
+  --color-rule-2: #959899;
+  --color-accent: #25292d;
+  --color-accent-deep: #111315;
+  --color-accent-soft: #e4e5e6;
   --color-accent-ink: #ffffff;
-  --color-focus: #15614a;
+  --color-focus: #25292d;
   --color-success: #1a6b3f;
   --color-error: #b42318;
-  --color-scrim: rgb(8 18 14 / 0.5);
-  --color-brass: #a77d2c;
-  --color-brass-ink: #7a5a16;
-  --color-brass-soft: #f1e8d2;
-  --color-side: #0f2a23;
-  --color-side-2: #17392f;
-  --color-side-ink: #e3ede8;
-  --color-side-muted: #9db5aa;
+  --color-scrim: rgb(0 0 0 / 0.5);
+  --color-brass: #75797e;
+  --color-brass-ink: #43474b;
+  --color-brass-soft: #ececed;
+  --color-side: #141516;
+  --color-side-2: #242628;
+  --color-side-ink: #e6e7e8;
+  --color-side-muted: #a9adb1;
   --color-side-rule: rgb(255 255 255 / 0.09);
-  --color-glint: #d6b36a;
-  --color-glint-ink: #1b1405;
+  --color-glint: #d3d7db;
+  --color-glint-ink: #141516;
 
   --font-outlier: var(--font-geist-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
 
   --radius-card: 12px;
   --radius-control: 8px;
   --radius-pill: 999px;
-  --shadow-card: 0 1px 2px rgb(15 35 28 / 0.05), 0 0 0 1px var(--color-rule);
-  --shadow-lift: 0 8px 24px rgb(15 35 28 / 0.10), 0 0 0 1px var(--color-rule-2);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.05), 0 0 0 1px var(--color-rule);
+  --shadow-lift: 0 8px 24px rgb(0 0 0 / 0.10), 0 0 0 1px var(--color-rule-2);
   --shadow-pop: 0 24px 60px rgb(10 20 24 / 0.28);
   --tracking-display: -0.03em;
 }

@@ -42,7 +42,7 @@ export function GoalForm({ savingsAccounts = [] }: { savingsAccounts?: { id: str
         </label>
       )}
       <label className="field"><span className="label">How firm is it?</span>
-        <select name="fixed" className="input" defaultValue="no"><option value="no">Flexible: only what I put aside</option><option value="yes">Fixed: hold it back every month</option></select>
+        <select name="fixed" className="input" defaultValue="no"><option value="no">Flexible: only what I put aside</option><option value="yes">Fixed: hold it back every month (needs a date)</option></select>
       </label>
       <div className="tx-form__end"><Status s={s} /><button className="btn btn--primary" disabled={pending}>Add goal</button></div>
     </form>

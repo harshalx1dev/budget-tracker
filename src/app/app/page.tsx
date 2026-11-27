@@ -39,7 +39,7 @@ async function OverviewLoader() {
   const steps = [
     { done: balance !== 0 || accounts.length > 1, title: "Add your accounts and what is in them", why: "Bank, cash, cards and wallets.", href: "/app/accounts" },
     { done: rules.some((r) => r.kind === "income"), title: "Tell it when your salary arrives", why: "So it can count down to payday.", href: "/app/plan/commitments" },
-    { done: loans.length > 0 || rules.some((r) => r.kind === "expense"), title: "Add rent, EMIs and subscriptions", why: "These are held back before anything is called free.", href: "/app/plan/commitments" },
+    { done: loans.length > 0 || rules.some((r) => r.kind === "expense"), title: "Add rent, EMIs and subscriptions", why: "These are held back before anything is called free.", href: "/app/plan/commitments", none: "I have none" },
   ];
   const setting = steps.some((st) => !st.done);
   // With nothing entered yet, a wall of zeros says less than the three steps do.

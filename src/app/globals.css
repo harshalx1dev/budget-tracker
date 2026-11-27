@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "./tokens.css";
-@import "./palettes.css";
 @import "./base.css" layer(base);
 
 :root {
@@ -8,30 +7,34 @@
   --font-body: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
-/* Dark mode: the same green and brass, deeper. Swapped by next-themes through data-theme. */
+/* Dark mode: the same graphite, deeper. Swapped by next-themes through data-theme. */
 [data-theme="dark"] {
+  --color-glint-ink: #141516;
+  --color-glint: #d3d7db;
+  --color-side-muted: #a9adb1;
+  --color-side-ink: #e6e7e8;
   color-scheme: dark;
-  --color-paper: #0a100e;
-  --color-paper-2: #111a17;
-  --color-paper-3: #19241f;
-  --color-ink: #e7efea;
-  --color-ink-2: #c3d1ca;
-  --color-muted: #8fa299;
-  --color-rule: #1f2c27;
-  --color-rule-2: #52665c;
-  --color-accent: #4fb58c;
-  --color-accent-deep: #7fd0ac;
-  --color-accent-soft: #12332a;
-  --color-accent-ink: #04140e;
-  --color-focus: #7fd0ac;
+  --color-paper: #0c0d0e;
+  --color-paper-2: #151617;
+  --color-paper-3: #202224;
+  --color-ink: #eff0f1;
+  --color-ink-2: #cdd0d3;
+  --color-muted: #9ea3a8;
+  --color-rule: #26282a;
+  --color-rule-2: #5d6266;
+  --color-accent: #e3e6e9;
+  --color-accent-deep: #f4f5f6;
+  --color-accent-soft: #2a2c2f;
+  --color-accent-ink: #111213;
+  --color-focus: #e3e6e9;
   --color-success: #62d29b;
   --color-error: #ff8f84;
   --color-scrim: rgb(0 0 0 / 0.6);
-  --color-brass: #d6b36a;
-  --color-brass-ink: #d6b36a;
-  --color-brass-soft: #2a2314;
-  --color-side: #0c1613;
-  --color-side-2: #14231e;
+  --color-brass: #d3d7db;
+  --color-brass-ink: #d3d7db;
+  --color-brass-soft: #2a2c2f;
+  --color-side: #101112;
+  --color-side-2: #1d1f21;
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 0 0 1px var(--color-rule);
   --shadow-lift: 0 8px 24px rgb(0 0 0 / 0.4), 0 0 0 1px var(--color-rule-2);
   --shadow-pop: 0 24px 60px rgb(0 0 0 / 0.6);
@@ -193,7 +196,7 @@
 .input--sm { min-height: 36px; width: auto; }
 /* dropdowns: our own arrow everywhere; where the browser allows (customisable select) the list is ours too,
    while the element stays a real select, so forms, keyboard and screen readers keep working */
-select.input { appearance: none; padding-right: 36px; cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a77d2c' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; text-overflow: ellipsis; }
+select.input { appearance: none; padding-right: 36px; cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2375797e' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; text-overflow: ellipsis; }
 select.input option { background: var(--color-paper-2); color: var(--color-ink); }
 @supports (appearance: base-select) {
   select.input, select.input::picker(select) { appearance: base-select; }
@@ -516,20 +519,6 @@ details.more > summary.btn { width: fit-content; }
 }
 @media (max-width: 40rem) { .page { padding-top: var(--space-lg); } }
 
-/* ───────── theme picker ───────── */
-.themefab { position: fixed; right: 20px; bottom: 20px; z-index: 350; width: 48px; height: 48px; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--color-side); color: var(--color-glint); box-shadow: 0 0 0 1px var(--color-side-rule), 0 10px 28px rgb(0 0 0 / 0.3); cursor: pointer; transition: transform var(--dur-short) var(--ease-out); }
-.themefab:hover { transform: translateY(-2px) rotate(-8deg); }
-.themepick { position: fixed; inset: auto 20px 80px auto; margin: 0; width: min(320px, calc(100vw - 32px)); max-height: min(70dvh, 560px); overflow: auto; padding: var(--space-sm); border: 0; border-radius: var(--radius-card); background: var(--color-paper-2); color: var(--color-ink); box-shadow: 0 0 0 1px var(--color-rule-2), var(--shadow-pop); }
-.themepick__title { padding: var(--space-2xs) var(--space-xs) var(--space-xs); }
-.themepick__opt { display: flex; align-items: center; gap: var(--space-sm); width: 100%; min-height: 48px; padding: 0 var(--space-xs); border: 0; border-radius: var(--radius-control); background: transparent; color: inherit; font: 500 var(--text-sm)/1.2 var(--font-body); text-align: left; cursor: pointer; }
-.themepick__opt:hover { background: var(--color-paper-3); }
-.themepick__opt[aria-pressed="true"] { background: var(--color-brass-soft); box-shadow: inset 0 0 0 1px var(--color-brass); }
-.themepick__dots { display: flex; flex: none; border-radius: 999px; overflow: hidden; box-shadow: 0 0 0 1px var(--color-rule-2); }
-.themepick__dots span { width: 18px; height: 28px; }
-@media (max-width: 48rem) {
-  body:has(.tabbar) .themefab { bottom: calc(76px + env(safe-area-inset-bottom)); right: 12px; }
-  body:has(.tabbar) .themepick { bottom: calc(136px + env(safe-area-inset-bottom)); right: 12px; }
-}
 
 /* ───────── plain-language pieces: setup steps, the headline sentence, want-to-buy rows ───────── */
 .hero__line { margin-top: var(--space-sm); font-size: var(--text-md); line-height: 1.45; }

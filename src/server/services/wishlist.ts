@@ -1,7 +1,7 @@
 import "server-only";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { db, schema } from "@/server/db";
-import { forecast } from "@/server/services/planner";
+import { forecast, listGoals, safeToSpend } from "@/server/services/planner";
 import { bestPlan, emiPlan, outrightPlan, sequence, type State, type Wish } from "@/lib/affordability";
 
 const { categories, wishlistItems, wishlistLinks, workspaces } = schema;
@@ -49,12 +49,17 @@ const HORIZON = 24;
 
 /** What can be bought and when, from the forecast and your rules. Plain arithmetic: no AI involved. */
 async function loadState(workspaceId: string, homeCurrency: string) {
-  const [fc, [ws]] = await Promise.all([
+  const [fc, [ws], sts, goals] = await Promise.all([
     forecast(workspaceId, homeCurrency, HORIZON),
     db.select({ buffer: workspaces.bufferMinor, ratio: workspaces.maxEmiRatioPct }).from(workspaces).where(eq(workspaces.id, workspaceId)),
+    safeToSpend(workspaceId, homeCurrency),
+    listGoals(workspaceId),
   ]);
+  // Money set aside for something else is not there to be spent: what goals hold now, and what fixed goals will take.
+  const held = sts.goalSetAside;
+  const ahead = (month: number) => goals.reduce((s, g) => s + (g.fixed && g.requiredMonthly ? g.requiredMonthly * Math.min(month, Math.max(0, (g.monthsLeft ?? 0) - 1)) : 0), 0);
   const state: State = {
-    startBalance: fc.startBalance, ends: fc.rows.map((r) => r.end), emiLoad: fc.emiByMonth, incomes: fc.rows.map((r) => r.income),
+    startBalance: fc.startBalance - held, ends: fc.rows.map((r, i) => r.end - held - ahead(i)), emiLoad: fc.emiByMonth, incomes: fc.rows.map((r) => r.income),
     upfront: fc.rows.map(() => 0), buffer: ws.buffer, maxRatioPct: ws.ratio,
   };
   return { fc, state, ws };
