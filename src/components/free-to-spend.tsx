@@ -41,11 +41,13 @@ export function FreeToSpendWorking({ sts, home }: { sts: Sts; home: string }) {
     </table>
   );
   const m = sts.monthly;
+  // Card lines only appear for people whose cards have one to show.
+  const cardRow = (label: string, v: number): [string, number][] => (v ? [[label, -v]] : []);
   return (
     <details className="more">
       <summary className="btn btn--secondary">How is this worked out?</summary>
       <div className="stack-sm">
-        <div className="well table-wrap">{table(m.fromPayday ? "Since payday" : "This month", [["Money received", m.income], ["Already spent", -m.spent], ["Card bills paid", -m.cardPaid], ["Moved to savings", -m.saved], ["Bills and EMIs still to pay", -m.billsDue], ["Card bills to pay", -m.cardDue], ["Saving for goals", -m.goalSetAside]])}</div>
+        <div className="well table-wrap">{table(m.fromPayday ? "Since payday" : "This month", [["Money received", m.income], ["Already spent", -m.spent], ...cardRow("Card bills paid", m.cardPaid), ["Moved to savings", -m.saved], ["Bills and EMIs still to pay", -m.billsDue], ...cardRow("Card bills to pay", m.cardDue), ["Saving for goals", -m.goalSetAside]])}</div>
         <div className="well table-wrap">{table("All my money", [["In your accounts", sts.balance], ["Bills and EMIs still to pay", -sts.dueOutflows], ["Saving for goals", -sts.goalSetAside], ["Kept aside", -sts.buffer]])}</div>
         {m.due.length > 0 && <p className="label">Still to pay: {m.due.map((d) => `${d.name} ${formatMinor(d.amountMinor, home)} ${d.dueOn < todayISO() ? "overdue since" : "on"} ${formatDay(d.dueOn)}`).join(", ")}.</p>}
         {m.onCards > 0 && <p className="label">{formatMinor(m.onCards, home)} spent on cards is not billed yet, so a later salary pays it.</p>}

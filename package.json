@@ -16,6 +16,7 @@
     "check:commitments": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-commitments.ts",
     "check:planner": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-planner.ts",
     "check:wishlist": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-wishlist.ts",
+    "check:cards": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-cards.ts",
     "check:ai": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-ai.ts",
     "check:mcp": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-mcp.ts",
     "check:polish": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-polish.ts",

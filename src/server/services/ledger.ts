@@ -4,7 +4,7 @@ import { db, schema } from "@/server/db";
 
 const { accounts, categories, transactions } = schema;
 
-export type NewAccount = { name: string; type: (typeof accounts.$inferInsert)["type"]; currency: string; openingBalanceMinor: number; aliases: string[] };
+export type NewAccount = { name: string; type: (typeof accounts.$inferInsert)["type"]; currency: string; openingBalanceMinor: number; aliases: string[]; statementDay?: number | null; dueDay?: number | null };
 export type NewTransaction = {
   accountId: string;
   categoryId: string | null;

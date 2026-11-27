@@ -62,9 +62,15 @@ export async function addAccount(_: FormState, fd: FormData): Promise<FormState>
   const p = accountSchema.safeParse(Object.fromEntries(fd));
   if (!p.success) return { error: "Check the form and try again" };
   const { opening, currency, ...rest } = p.data;
-  const openingBalanceMinor = opening ? toMinor(opening, currency) : 0;
-  if (openingBalanceMinor === null) return { error: "Opening balance must be a number" };
-  await createAccount(workspace.id, { ...rest, currency, openingBalanceMinor });
+  const entered = opening && Number(opening.replace(/,/g, "")) !== 0 ? toMinor(opening, currency) : 0;
+  if (entered === null) return { error: "Enter the amount as a number above zero, or leave it empty" };
+  // On a card the figure typed is what is owed, which counts against you.
+  const card = rest.type === "card";
+  const day = (name: string) => Number(String(fd.get(name) ?? "").trim()) || null;
+  const statementDay = card ? day("statementDay") : null, dueDay = card ? day("dueDay") : null;
+  const validDay = (d: number | null) => d === null || (Number.isInteger(d) && d >= 1 && d <= 31);
+  if (!validDay(statementDay) || !validDay(dueDay) || (statementDay === null) !== (dueDay === null)) return { error: "Give both card days, each between 1 and 31, or neither" };
+  await createAccount(workspace.id, { ...rest, currency, openingBalanceMinor: card && entered ? -entered : entered, statementDay, dueDay });
   revalidatePath("/app", "layout");
   return { ok: true };
 }

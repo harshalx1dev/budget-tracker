@@ -72,7 +72,8 @@ async function OverviewLoader() {
         </div>
         <div className="stat well" data-tone="out">
           <div className="stat__top"><p className="label">Spent {since}</p><span className="stat__icon"><ArrowUpRight size={18} aria-hidden /></span></div>
-          <p className="figure">{formatMinor(sts.monthly.spent, home, { whole: true })}</p>
+          <p className="figure">{formatMinor(sts.monthly.spent + sts.monthly.cardPaid, home, { whole: true })}</p>
+          {sts.monthly.onCards > 0 && <p className="label">Plus {formatMinor(sts.monthly.onCards, home, { whole: true })} on cards, billed later</p>}
         </div>
       </section>
       <FreeToSpendWorking sts={sts} home={home} />
