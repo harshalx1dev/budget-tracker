@@ -25,7 +25,7 @@ async function LoanLoader({ params }: { params: Promise<{ id: string }> }) {
 
   return (
     <div className="settle stack">
-      <div className="head-row"><h1>{loan.name}</h1><Link href="/app/plan/commitments" className="btn btn--secondary">All commitments</Link></div>
+      <div className="head-row"><h1>{loan.name}</h1><Link href="/app/plan/commitments" className="btn btn--secondary">All bills and EMIs</Link></div>
       <section className="stats" aria-label="Loan summary">
         <div className="stat well"><div className="stat__top"><p className="label">EMI</p><span className="stat__icon"><Banknote size={18} aria-hidden /></span></div><p className="figure">{formatMinor(loan.emiMinor, home)}</p></div>
         <div className="stat well"><div className="stat__top"><p className="label">Instalments left</p><span className="stat__icon"><CalendarClock size={18} aria-hidden /></span></div><p className="figure">{rows.filter((r) => r.dueOn >= today).length}</p></div>

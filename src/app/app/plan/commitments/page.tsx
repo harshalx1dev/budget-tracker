@@ -21,10 +21,13 @@ async function CommitmentsLoader() {
   const { workspace } = await requireWorkspace();
   const home = workspace.homeCurrency;
   const today = todayISO();
-  const [accounts, categories, loans, rules, expected] = await Promise.all([
+  const [accounts, categories, loans, allRules, allExpected] = await Promise.all([
     listAccounts(workspace.id), listCategories(workspace.id), listLoans(workspace.id), listRecurring(workspace.id),
     listExpected(workspace.id, shiftDays(today, -45), shiftDays(today, 60)),
   ]);
+  // Income lives with the accounts; this page is about money going out.
+  const rules = allRules.filter((r) => r.kind === "expense");
+  const expected = allExpected.filter((e) => e.kind === "expense");
   const loanRows = await Promise.all(loans.map(async (l) => {
     const d = await getLoan(workspace.id, l.id);
     const { rows } = loanSchedule(l, d!.revisions);
@@ -49,7 +52,7 @@ async function CommitmentsLoader() {
       <section className="stack-sm" aria-labelledby="up-h">
         <h2 id="up-h">Coming up</h2>
         {expected.length === 0 ? (
-          <div className="well empty"><h3>Nothing planned yet</h3><p>Add an EMI or a recurring item below and its payments show up here.</p></div>
+          <div className="well empty"><h3>Nothing planned yet</h3><p>Add an EMI or a regular payment below and it shows up here.</p></div>
         ) : (
           <div className="well table-wrap">
             <table className="ledger">
@@ -102,8 +105,8 @@ async function CommitmentsLoader() {
       </section>
 
       <section className="stack-sm" aria-labelledby="rec-h">
-        <h2 id="rec-h">Regular payments and income</h2>
-        <p className="label">Salary, rent, subscriptions and SIPs. Give an end date or a count if it stops.</p>
+        <h2 id="rec-h">Regular payments</h2>
+        <p className="label">Rent, subscriptions and SIPs. Your salary and other income are under <Link href="/app/accounts#income" className="link">Accounts</Link>.</p>
         {rules.length > 0 && (
           <div className="well table-wrap">
             <table className="ledger">
@@ -115,7 +118,7 @@ async function CommitmentsLoader() {
                     <td className="num amt" data-kind={r.kind}>{formatMinor(r.kind === "income" ? r.amountMinor : -r.amountMinor, home, { sign: true })}</td>
                     <td>every {r.intervalCount > 1 ? `${r.intervalCount} ` : ""}{FREQ[r.frequency]}{r.intervalCount > 1 ? "s" : ""} from {formatDay(r.startOn)}</td>
                     <td>{r.endOn ? formatDayYear(r.endOn) : r.maxCount ? `${r.maxCount} times` : "No end"}</td>
-                    <td><span className="head-actions"><EditDialog label={`Edit ${r.name}`}><RecurringForm accounts={accountOpts} categories={categories} savingsAccounts={accounts.filter((a) => isAssetType(a.type)).map((a) => ({ id: a.id, name: a.name }))} item={{
+                    <td><span className="head-actions"><EditDialog label={`Edit ${r.name}`}><RecurringForm only="expense" accounts={accountOpts} categories={categories} savingsAccounts={accounts.filter((a) => isAssetType(a.type)).map((a) => ({ id: a.id, name: a.name }))} item={{
                       id: r.id, name: r.name, kind: r.kind, amount: String(r.amountMinor / 100), frequency: r.frequency, every: r.intervalCount, anchor: r.anchor, weekendShift: r.weekendShift,
                       startOn: r.startOn, endOn: r.endOn ?? "", count: r.maxCount, pattern: r.matchPattern ?? "", accountId: r.accountId ?? "", categoryId: r.categoryId ?? "", intoAccountId: r.transferToAccountId ?? "",
                     }} /></EditDialog><ArchiveButton kind="rule" id={r.id} label={`Remove ${r.name}`} /></span></td>
@@ -125,7 +128,7 @@ async function CommitmentsLoader() {
             </table>
           </div>
         )}
-        <details className="more"><summary className="btn btn--secondary">Add a recurring item</summary><RecurringForm accounts={accountOpts} categories={categories} savingsAccounts={accounts.filter((a) => isAssetType(a.type)).map((a) => ({ id: a.id, name: a.name }))} /></details>
+        <details className="more"><summary className="btn btn--secondary">Add a regular payment</summary><RecurringForm only="expense" accounts={accountOpts} categories={categories} savingsAccounts={accounts.filter((a) => isAssetType(a.type)).map((a) => ({ id: a.id, name: a.name }))} /></details>
       </section>
     </div>
   );

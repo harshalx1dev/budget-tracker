@@ -109,7 +109,7 @@ async function WishlistLoader({ searchParams }: { searchParams: Query }) {
         <summary className="btn btn--secondary">How are these dates decided?</summary>
         <div className="stack-sm">
           <p className="label">The app looks six months and more ahead at your salary, bills and spending. It keeps {money(a.buffer)} untouched and lets all EMIs together take at most {a.maxRatioPct}% of your income.</p>
-          {!a.incomeKnown && <p className="label">No salary is planned yet. <Link href="/app/plan/commitments" className="link">Add your salary</Link>.</p>}
+          {!a.incomeKnown && <p className="label">No salary is planned yet. <Link href="/app/accounts#income" className="link">Add your salary</Link>.</p>}
           <p className="label">Most of your income that EMIs may take, in percent:</p>
           <RatioForm current={a.maxRatioPct} />
           {list.length > 0 && (

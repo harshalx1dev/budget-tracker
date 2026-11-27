@@ -11,7 +11,7 @@ type Cmd = { id: string; label: string; hint?: string; run: () => void };
 const PAGES: [string, string][] = [
   ["overview", "/app"], ["transactions", "/app/transactions"], ["to sort", "/app/inbox"], ["accounts", "/app/accounts"], ["settings", "/app/settings"],
   ["budgets", "/app/plan/budgets"], ["goals", "/app/plan/goals"], ["want to buy", "/app/plan/wishlist"], ["savings", "/app/plan/savings"],
-  ["bills and EMIs", "/app/plan/commitments"], ["trends", "/app/plan/reports"], ["import a statement", "/app/import"], ["categories and rules", "/app/categories"],
+  ["bills and EMIs", "/app/plan/commitments"], ["income and salary", "/app/accounts#income"], ["trends", "/app/plan/reports"], ["import a statement", "/app/import"], ["categories and rules", "/app/categories"],
 ];
 
 /** Ctrl or Cmd + K opens it; "/" jumps to quick add. Everything in it is also reachable from the normal navigation. */
@@ -28,7 +28,7 @@ export function CommandPalette() {
 
   const commands: Cmd[] = useMemo(() => [
     { id: "quick", label: "Quick add an entry", hint: "/", run: () => { showLoading(); router.push("/app/quick"); } },
-    ...PAGES.map(([label, href]): Cmd => ({ id: href, label: `Go to ${label.toLowerCase()}`, run: () => { if (href !== window.location.pathname) showLoading(); router.push(href); } })),
+    ...PAGES.map(([label, href]): Cmd => ({ id: href, label: `Go to ${label.toLowerCase()}`, run: () => { if (href.split("#")[0] !== window.location.pathname) showLoading(); router.push(href); } })),
     { id: "theme", label: `Switch to ${resolvedTheme === "dark" ? "light" : "dark"} mode`, run: () => setTheme(resolvedTheme === "dark" ? "light" : "dark") },
     { id: "export", label: "Download transactions as CSV", run: () => { const a = document.createElement("a"); a.href = "/app/export/transactions"; a.download = ""; a.click(); } },
     { id: "out", label: "Sign out", run: async () => { showLoading(); try { await authClient.signOut(); router.push("/login"); router.refresh(); } catch { hideLoading(); } } },

@@ -40,7 +40,7 @@ async function ReportsLoader({ searchParams }: { searchParams: Promise<{ m?: str
 
       <section className="stack-sm" aria-labelledby="fc-h">
         <h2 id="fc-h">Next six months</h2>
-        {!fc.incomeKnown && <p className="label">No salary is planned yet, so this only shows money going out. <Link href="/app/plan/commitments" className="link">Add your salary</Link>.</p>}
+        {!fc.incomeKnown && <p className="label">No salary is planned yet, so this only shows money going out. <Link href="/app/accounts#income" className="link">Add your salary</Link>.</p>}
         <div className="well" style={{ padding: "var(--space-lg)" }}>
           <ForecastChart rows={fc.rows} currency={home} />
           {fc.rows.some((r) => r.end < 0) && <p className="error" role="alert">Your balance goes below zero in {label(fc.rows.find((r) => r.end < 0)!.month)} on this plan.</p>}

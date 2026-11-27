@@ -14,6 +14,7 @@ import { isAssetType, TYPE_LABELS } from "@/lib/savings";
 import { CreditCard, Landmark, TrendingUp, Wallet } from "lucide-react";
 import { TransferForm, ReconcileForm } from "@/components/money-moves";
 import { AccountForm } from "@/components/account-form";
+import { IncomeSection } from "@/components/income-section";
 
 export const metadata = { title: "Accounts" };
 
@@ -26,7 +27,7 @@ async function AccountsLoader() {
     <div className="settle stack">
       <h1>Accounts</h1>
       <Summary figure={formatMinor(accounts.filter((a) => a.currency === workspace.homeCurrency && !isAssetType(a.type)).reduce((n, a) => n + a.balanceMinor, 0), workspace.homeCurrency, { whole: true })} caption="in your spending accounts; savings and investments are not included" />
-      <section className="well" aria-label="Your accounts">
+      <section className="well table-wrap" aria-label="Your accounts">
         <table className="ledger">
           <thead><tr><th>Name</th><th>Type</th><th className="num">Balance</th><th><span className="visually-hidden">Edit</span></th></tr></thead>
           <tbody>
@@ -40,6 +41,7 @@ async function AccountsLoader() {
       </section>
       <CardSection cards={cards} payFrom={["bank", "wallet", "cash"].flatMap((t) => accounts.filter((a) => a.type === t))} />
       <AddPanel label="Add an account or credit card"><AccountForm homeCurrency={workspace.homeCurrency} /></AddPanel>
+      <IncomeSection workspaceId={workspace.id} home={workspace.homeCurrency} />
       <section className="stack-sm" aria-labelledby="mv-h">
         <h2 id="mv-h">Move money</h2>
         <TransferForm accounts={accounts} />

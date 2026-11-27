@@ -78,10 +78,11 @@ export type EditableRule = {
   startOn: string; endOn: string; count: number | null; pattern: string; accountId: string; categoryId: string; intoAccountId: string;
 };
 
-export function RecurringForm({ accounts, categories, savingsAccounts = [], item }: { accounts: (Acct & { type?: string })[]; categories: Cat[]; savingsAccounts?: Acct[]; item?: EditableRule }) {
+/** One form for bills (under Plan) and income (under Accounts); `only` says which it is. */
+export function RecurringForm({ accounts, categories, savingsAccounts = [], item, only }: { accounts: (Acct & { type?: string })[]; categories: Cat[]; savingsAccounts?: Acct[]; item?: EditableRule; only: "income" | "expense" }) {
   const [s, action, pending] = useActionState<CommitState, FormData>(addRecurringAction, {});
   const ref = useResetOnSuccess(s);
-  const [kind, setKind] = useState<"expense" | "income">(item?.kind ?? "expense");
+  const kind = only;
   const [frequency, setFrequency] = useState<keyof typeof UNIT>(item?.frequency ?? "monthly");
   useCloseWhenSaved(s);
   // the stored choices apply while the kind is unchanged
@@ -90,12 +91,10 @@ export function RecurringForm({ accounts, categories, savingsAccounts = [], item
   // Money does not arrive on a credit card.
   const places = income ? accounts.filter((a) => a.type !== "card") : accounts;
   return (
-    <form ref={ref} action={action} onReset={() => { setKind(item?.kind ?? "expense"); setFrequency(item?.frequency ?? "monthly"); }} className={item ? "tx-form" : "well tx-form"} aria-busy={pending}>
+    <form ref={ref} action={action} onReset={() => setFrequency(item?.frequency ?? "monthly")} className={item ? "tx-form" : "well tx-form"} aria-busy={pending}>
       {item && <input type="hidden" name="id" value={item.id} />}
       <Field label="Name"><input name="name" required maxLength={60} placeholder={income ? "Salary" : "Rent"} defaultValue={item?.name} className="input" /></Field>
-      <Field label="Money out or in">
-        <select name="kind" className="input" value={kind} onChange={(e) => setKind(e.target.value as "expense" | "income")}><option value="expense">Out: a bill or payment</option><option value="income">In: income</option></select>
-      </Field>
+      <input type="hidden" name="kind" value={kind} />
       <Field label="Amount"><input name="amount" inputMode="decimal" required defaultValue={item?.amount} className="input" /></Field>
       <Field label="How often">
         <select name="frequency" className="input" value={frequency} onChange={(e) => setFrequency(e.target.value as keyof typeof UNIT)}><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select>
@@ -129,9 +128,9 @@ export function RecurringForm({ accounts, categories, savingsAccounts = [], item
   );
 }
 
-export function MarkPaidButton({ sourceKind, sourceId, dueOn }: { sourceKind: "loan" | "rule"; sourceId: string; dueOn: string }) {
+export function MarkPaidButton({ sourceKind, sourceId, dueOn, label = "Mark paid" }: { sourceKind: "loan" | "rule"; sourceId: string; dueOn: string; label?: string }) {
   const [pending, start] = useTransition();
-  return <button type="button" className="pill pill--outline" disabled={pending} onClick={() => start(async () => { await markPaidAction(sourceKind, sourceId, dueOn); })}><Check size={14} aria-hidden /> Mark paid</button>;
+  return <button type="button" className="pill pill--outline" disabled={pending} onClick={() => start(async () => { await markPaidAction(sourceKind, sourceId, dueOn); })}><Check size={14} aria-hidden /> {label}</button>;
 }
 
 export function MatchNowButton() {
