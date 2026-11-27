@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireWorkspace } from "@/server/session";
-import { addContribution, addGoal, archiveGoal, deleteBudget, setBudget, setBuffer, setGoalFixed } from "@/server/services/planner";
+import { addContribution, addGoal, archiveGoal, deleteBudget, setBudget, setBuffer, setGoalFixed, updateGoal } from "@/server/services/planner";
 import { toMinor } from "@/lib/money";
 import { thisMonth, todayISO } from "@/lib/dates";
 
@@ -35,9 +35,17 @@ export async function addGoalAction(_: PlanState, fd: FormData): Promise<PlanSta
   const date = dateRaw ? day.safeParse(dateRaw) : null;
   if (!name || !target) return { error: "Name and target amount are needed" };
   if (date && !date.success) return { error: "Target date is not valid" };
-  if (date?.success && date.data <= todayISO()) return { error: "Target date should be in the future" };
+  const id = String(fd.get("id") ?? "");
+  // an existing goal may keep a date that has since passed
+  if (!id && date?.success && date.data <= todayISO()) return { error: "Target date should be in the future" };
   if (fd.get("fixed") === "yes" && !date) return { error: "A fixed goal needs a date, so the app knows how much to hold back each month" };
-  try { await addGoal(workspace.id, name, target, date?.success ? date.data : null, String(fd.get("accountId") ?? "") || null, fd.get("fixed") === "yes"); refresh(); return { message: "Goal added" }; } catch (e) { return fail(e); }
+  const targetDate = date?.success ? date.data : null, accountId = String(fd.get("accountId") ?? "") || null, fixed = fd.get("fixed") === "yes";
+  try {
+    if (id) await updateGoal(workspace.id, id, { name, targetMinor: target, targetDate, accountId, fixed });
+    else await addGoal(workspace.id, name, target, targetDate, accountId, fixed);
+    refresh();
+    return { message: id ? "Saved" : "Goal added" };
+  } catch (e) { return fail(e); }
 }
 
 export async function addContributionAction(_: PlanState, fd: FormData): Promise<PlanState> {

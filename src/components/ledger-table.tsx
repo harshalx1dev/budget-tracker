@@ -3,13 +3,15 @@ import { formatMinor } from "@/lib/money";
 import { formatDay } from "@/lib/dates";
 import { DeleteButton } from "./delete-button";
 import { CategorySelect } from "./category-select";
+import { EditDialog } from "./edit-dialog";
+import { TransactionEditForm } from "./edit-forms";
 import type { listTransactions } from "@/server/services/ledger";
 
 type Row = Awaited<ReturnType<typeof listTransactions>>[number];
 
 type Cat = { id: string; name: string; kind: "income" | "expense" };
 
-export function LedgerTable({ rows, categories, empty }: { rows: Row[]; categories: Cat[]; empty: string }) {
+export function LedgerTable({ rows, categories, accounts, empty }: { rows: Row[]; categories: Cat[]; accounts: { id: string; name: string; currency: string }[]; empty: string }) {
   if (!rows.length) {
     return (
       <div className="empty">
@@ -31,7 +33,9 @@ export function LedgerTable({ rows, categories, empty }: { rows: Row[]; categori
               <td>{r.transferId ? "Transfer" : <CategorySelect id={r.id} value={r.categoryId} needsReview={r.status === "pending"} label={`Category for ${r.payee || r.note || "entry"}`} options={categories.filter((c) => c.kind === r.kind).map(({ id, name }) => ({ id, name }))} />}</td>
               <td>{r.account}</td>
               <td className="num amt" data-kind={r.kind}>{formatMinor(r.kind === "income" ? r.amountMinor : -r.amountMinor, r.currency, { sign: true })}</td>
-              <td><DeleteButton id={r.id} /></td>
+              <td><span className="head-actions"><EditDialog label="Edit entry"><TransactionEditForm accounts={accounts.map(({ id, name, currency }) => ({ id, name, currency }))} categories={categories.map(({ id, name, kind }) => ({ id, name, kind }))} tx={{
+                id: r.id, kind: r.kind, amount: String(r.amountMinor / 100), currency: r.currency, accountId: r.accountId, categoryId: r.categoryId, payee: r.payee ?? "", note: r.note ?? "", occurredOn: r.occurredOn, transfer: Boolean(r.transferId),
+              }} /></EditDialog><DeleteButton id={r.id} /></span></td>
             </tr>
           ))}
         </tbody>

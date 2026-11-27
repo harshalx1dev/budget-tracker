@@ -4,6 +4,7 @@ import { AddPanel } from "@/components/add-panel";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { ContributionForm, GoalForm, RemoveButton } from "@/components/plan-forms";
 import { GoalFirmness } from "@/components/goal-firmness";
+import { EditDialog } from "@/components/edit-dialog";
 import { requireWorkspace } from "@/server/session";
 import { listGoals } from "@/server/services/planner";
 import { listAssets } from "@/server/services/savings";
@@ -33,7 +34,7 @@ async function GoalsLoader() {
                 <div className="bar__head">
                   <p className="row__title">{g.name}{g.targetDate ? <span className="label"> by {formatDayYear(g.targetDate)}</span> : null}</p>
                   <p className="row__value">{formatMinor(g.saved, home, { whole: true })} <span className="label">of {formatMinor(g.targetMinor, home, { whole: true })}</span></p>
-                  <RemoveButton kind="goal" id={g.id} label={`Remove ${g.name}`} />
+                  <span className="head-actions"><EditDialog label={`Edit ${g.name}`}><GoalForm savingsAccounts={assets.map((a) => ({ id: a.id, name: a.name }))} item={{ id: g.id, name: g.name, target: String(g.targetMinor / 100), targetDate: g.targetDate ?? "", accountId: g.accountId ?? "", fixed: g.fixed }} /></EditDialog><RemoveButton kind="goal" id={g.id} label={`Remove ${g.name}`} /></span>
                 </div>
                 <div className="bar__track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={`${g.name} saved`}>
                   <div className="bar__fill" style={{ transform: `scaleX(${pct / 100})` }} />

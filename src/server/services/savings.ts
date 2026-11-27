@@ -68,6 +68,22 @@ export async function createDeposit(workspaceId: string, homeCurrency: string, d
   await snapshotNow(workspaceId, homeCurrency);
 }
 
+export async function updateDeposit(workspaceId: string, homeCurrency: string, id: string, d: NewDeposit) {
+  if (d.maturityOn <= d.startOn) throw new Error("Maturity must be after the start date");
+  const [old] = await db.select().from(fixedDeposits).where(and(eq(fixedDeposits.id, id), eq(fixedDeposits.workspaceId, workspaceId), isNull(fixedDeposits.archivedAt)));
+  if (!old) throw new Error("Deposit not found");
+  if (d.payoutAccountId) {
+    const [p] = await db.select({ id: accounts.id }).from(accounts).where(and(eq(accounts.id, d.payoutAccountId), eq(accounts.workspaceId, workspaceId)));
+    if (!p) throw new Error("Payout account not found");
+  }
+  const maturity = d.maturityMinor ?? fdMaturityEstimate(d.principalMinor, d.annualRatePct, d.startOn, d.maturityOn);
+  await db.transaction(async (tx) => {
+    if (old.accountId) await tx.update(accounts).set({ name: d.name, openingBalanceMinor: d.principalMinor }).where(eq(accounts.id, old.accountId));
+    await tx.update(fixedDeposits).set({ name: d.name, payoutAccountId: d.payoutAccountId, principalMinor: d.principalMinor, annualRatePct: String(d.annualRatePct), startOn: d.startOn, maturityOn: d.maturityOn, maturityMinor: maturity }).where(eq(fixedDeposits.id, old.id));
+  });
+  await snapshotNow(workspaceId, homeCurrency);
+}
+
 export async function listDeposits(workspaceId: string) {
   const rows = await db.select().from(fixedDeposits).where(and(eq(fixedDeposits.workspaceId, workspaceId), isNull(fixedDeposits.archivedAt))).orderBy(asc(fixedDeposits.maturityOn));
   const today = todayISO();

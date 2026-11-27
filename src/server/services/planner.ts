@@ -83,6 +83,15 @@ export async function addGoal(workspaceId: string, name: string, targetMinor: nu
   await db.insert(goals).values({ workspaceId, name, targetMinor, targetDate, accountId, fixed });
 }
 
+export async function updateGoal(workspaceId: string, id: string, v: { name: string; targetMinor: number; targetDate: string | null; accountId: string | null; fixed: boolean }) {
+  if (v.accountId) {
+    const [a] = await db.select({ type: schema.accounts.type }).from(schema.accounts).where(and(eq(schema.accounts.id, v.accountId), eq(schema.accounts.workspaceId, workspaceId)));
+    if (!a || !isAssetType(a.type)) throw new Error("Pick a savings or investment account to track this goal");
+  }
+  const done = await db.update(goals).set(v).where(and(eq(goals.id, id), eq(goals.workspaceId, workspaceId))).returning({ id: goals.id });
+  if (!done.length) throw new Error("Goal not found");
+}
+
 export async function addContribution(workspaceId: string, goalId: string, amountMinor: number, madeOn: string, note: string | null) {
   const [g] = await db.select({ id: goals.id }).from(goals).where(and(eq(goals.id, goalId), eq(goals.workspaceId, workspaceId)));
   if (!g) throw new Error("Goal not found");

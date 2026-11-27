@@ -7,6 +7,8 @@ import { listAccounts } from "@/server/services/ledger";
 import { listAssets } from "@/server/services/savings";
 import { listCards } from "@/server/services/cards";
 import { CardSection } from "@/components/card-section";
+import { EditDialog } from "@/components/edit-dialog";
+import { AccountEditForm } from "@/components/edit-forms";
 import { formatMinor } from "@/lib/money";
 import { isAssetType, TYPE_LABELS } from "@/lib/savings";
 import { CreditCard, Landmark, TrendingUp, Wallet } from "lucide-react";
@@ -26,10 +28,12 @@ async function AccountsLoader() {
       <Summary figure={formatMinor(accounts.filter((a) => a.currency === workspace.homeCurrency && !isAssetType(a.type)).reduce((n, a) => n + a.balanceMinor, 0), workspace.homeCurrency, { whole: true })} caption="in your spending accounts; savings and investments are not included" />
       <section className="well" aria-label="Your accounts">
         <table className="ledger">
-          <thead><tr><th>Name</th><th>Type</th><th className="num">Balance</th></tr></thead>
+          <thead><tr><th>Name</th><th>Type</th><th className="num">Balance</th><th><span className="visually-hidden">Edit</span></th></tr></thead>
           <tbody>
             {accounts.map((a) => (
-              <tr key={a.id}><td><span className="what"><span className="what__icon" data-kind="account" aria-hidden>{a.type === "cash" ? <Wallet size={14} /> : a.type === "card" ? <CreditCard size={14} /> : isAssetType(a.type) ? <TrendingUp size={14} /> : <Landmark size={14} />}</span>{a.name}</span></td><td>{TYPE_LABELS[a.type] ?? a.type}</td><td className="num">{formatMinor(worth.get(a.id) ?? a.balanceMinor, a.currency)}</td></tr>
+              <tr key={a.id}><td><span className="what"><span className="what__icon" data-kind="account" aria-hidden>{a.type === "cash" ? <Wallet size={14} /> : a.type === "card" ? <CreditCard size={14} /> : isAssetType(a.type) ? <TrendingUp size={14} /> : <Landmark size={14} />}</span>{a.name}</span></td><td>{TYPE_LABELS[a.type] ?? a.type}</td><td className="num">{formatMinor(worth.get(a.id) ?? a.balanceMinor, a.currency)}</td><td>{a.type === "fd" ? null : (
+                <EditDialog label={`Edit ${a.name}`}><AccountEditForm account={{ id: a.id, name: a.name, type: a.type, aliases: a.aliases.join(", "), balance: String((a.type === "card" ? -a.balanceMinor : a.balanceMinor) / 100), saving: isAssetType(a.type) }} /></EditDialog>
+              )}</td></tr>
             ))}
           </tbody>
         </table>

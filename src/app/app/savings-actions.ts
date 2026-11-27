@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireWorkspace } from "@/server/session";
-import { addValuation, archiveDeposit, createAsset, createDeposit, recordMaturity, setEmergency } from "@/server/services/savings";
+import { addValuation, archiveDeposit, createAsset, createDeposit, updateDeposit, recordMaturity, setEmergency } from "@/server/services/savings";
 import { isAssetType } from "@/lib/savings";
 import { toMinor } from "@/lib/money";
 import { todayISO } from "@/lib/dates";
@@ -46,9 +46,11 @@ export async function addDepositAction(_: SavingsState, fd: FormData): Promise<S
   const maturityMinor = stated ? toMinor(stated, cur) : null;
   if (!name || !principal || rate === null || Number.isNaN(rate) || rate < 0 || rate > 30 || !startOn.success || !maturityOn.success || (stated && !maturityMinor)) return { error: "Name, amount, interest rate (0 to 30) and both dates are needed" };
   try {
-    await createDeposit(workspace.id, cur, { name, principalMinor: principal, annualRatePct: rate, startOn: startOn.data, maturityOn: maturityOn.data, maturityMinor, payoutAccountId: blank(fd.get("payoutAccountId")) });
+    const id = blank(fd.get("id"));
+    const deposit = { name, principalMinor: principal, annualRatePct: rate, startOn: startOn.data, maturityOn: maturityOn.data, maturityMinor, payoutAccountId: blank(fd.get("payoutAccountId")) };
+    if (id) await updateDeposit(workspace.id, cur, id, deposit); else await createDeposit(workspace.id, cur, { ...deposit });
     refresh();
-    return { message: "Deposit added" };
+    return { message: id ? "Saved" : "Deposit added" };
   } catch (e) { return fail(e); }
 }
 

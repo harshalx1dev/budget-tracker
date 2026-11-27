@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { Summary } from "@/components/summary";
+import { EditDialog } from "@/components/edit-dialog";
 import { CardSection } from "@/components/card-section";
 import { listCards } from "@/server/services/cards";
 import Link from "next/link";
@@ -87,7 +88,10 @@ async function CommitmentsLoader() {
                     <td className="num">{remaining}</td>
                     <td>{ends ? formatDayYear(ends) : "—"}</td>
                     <td className="num">{outstanding === null ? "—" : formatMinor(outstanding, home)}</td>
-                    <td><ArchiveButton kind="loan" id={l.id} label={`Remove ${l.name}`} /></td>
+                    <td><span className="head-actions"><EditDialog label={`Edit ${l.name}`}><LoanForm accounts={accountOpts} item={{
+                      id: l.id, name: l.name, emi: String(l.emiMinor / 100), firstDueOn: l.firstDueOn, instalments: l.instalments, pattern: l.matchPattern ?? "", accountId: l.accountId ?? "",
+                      lender: l.lender ?? "", principal: l.principalMinor ? String(l.principalMinor / 100) : "", rate: l.annualRatePct === null ? "" : String(Number(l.annualRatePct)),
+                    }} /></EditDialog><ArchiveButton kind="loan" id={l.id} label={`Remove ${l.name}`} /></span></td>
                   </tr>
                 ))}
               </tbody>
@@ -111,7 +115,10 @@ async function CommitmentsLoader() {
                     <td className="num amt" data-kind={r.kind}>{formatMinor(r.kind === "income" ? r.amountMinor : -r.amountMinor, home, { sign: true })}</td>
                     <td>every {r.intervalCount > 1 ? `${r.intervalCount} ` : ""}{FREQ[r.frequency]}{r.intervalCount > 1 ? "s" : ""} from {formatDay(r.startOn)}</td>
                     <td>{r.endOn ? formatDayYear(r.endOn) : r.maxCount ? `${r.maxCount} times` : "No end"}</td>
-                    <td><ArchiveButton kind="rule" id={r.id} label={`Remove ${r.name}`} /></td>
+                    <td><span className="head-actions"><EditDialog label={`Edit ${r.name}`}><RecurringForm accounts={accountOpts} categories={categories} savingsAccounts={accounts.filter((a) => isAssetType(a.type)).map((a) => ({ id: a.id, name: a.name }))} item={{
+                      id: r.id, name: r.name, kind: r.kind, amount: String(r.amountMinor / 100), frequency: r.frequency, every: r.intervalCount, anchor: r.anchor, weekendShift: r.weekendShift,
+                      startOn: r.startOn, endOn: r.endOn ?? "", count: r.maxCount, pattern: r.matchPattern ?? "", accountId: r.accountId ?? "", categoryId: r.categoryId ?? "", intoAccountId: r.transferToAccountId ?? "",
+                    }} /></EditDialog><ArchiveButton kind="rule" id={r.id} label={`Remove ${r.name}`} /></span></td>
                   </tr>
                 ))}
               </tbody>

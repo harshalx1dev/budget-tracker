@@ -94,7 +94,7 @@ async function OverviewLoader() {
       </section>
       <section className="well" aria-labelledby="ledger-h">
         <h2 id="ledger-h" className="well__head">Recent</h2>
-        <LedgerTable rows={recent} categories={categories} empty="Add your first entry above. Income and spending land here, newest first." />
+        <LedgerTable rows={recent} categories={categories} accounts={accounts} empty="Add your first entry above. Income and spending land here, newest first." />
       </section>
     </div>
   );

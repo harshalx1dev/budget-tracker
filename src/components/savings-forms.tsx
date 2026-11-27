@@ -1,5 +1,6 @@
 "use client";
 
+import { useCloseWhenSaved } from "./edit-dialog";
 import { useActionState, useEffect, useRef, useTransition } from "react";
 import { Trash2 } from "lucide-react";
 import { addAssetAction, addDepositAction, addValuationAction, archiveDepositAction, recordMaturityAction, setEmergencyAction, type SavingsState } from "@/app/app/savings-actions";
@@ -48,21 +49,25 @@ export function ValuationForm({ accountId }: { accountId: string }) {
   );
 }
 
-export function DepositForm({ payoutAccounts }: { payoutAccounts: Acct[] }) {
+export type EditableDeposit = { id: string; name: string; principal: string; rate: string; payoutAccountId: string; startOn: string; maturityOn: string; maturity: string };
+
+export function DepositForm({ payoutAccounts, item }: { payoutAccounts: Acct[]; item?: EditableDeposit }) {
   const [s, action, pending] = useActionState<SavingsState, FormData>(addDepositAction, {});
   const ref = useReset(s);
+  useCloseWhenSaved(s);
   return (
-    <form ref={ref} action={action} className="well tx-form" aria-busy={pending}>
-      <label className="field"><span className="label">Name</span><input name="name" required maxLength={60} placeholder="HDFC FD" className="input" /></label>
-      <label className="field"><span className="label">Amount deposited</span><input name="principal" inputMode="decimal" required className="input" /></label>
-      <label className="field"><span className="label">Interest rate %</span><input name="rate" inputMode="decimal" required className="input" /></label>
+    <form ref={ref} action={action} className={item ? "tx-form" : "well tx-form"} aria-busy={pending}>
+      {item && <input type="hidden" name="id" value={item.id} />}
+      <label className="field"><span className="label">Name</span><input name="name" required maxLength={60} placeholder="HDFC FD" defaultValue={item?.name} className="input" /></label>
+      <label className="field"><span className="label">Amount deposited</span><input name="principal" inputMode="decimal" required defaultValue={item?.principal} className="input" /></label>
+      <label className="field"><span className="label">Interest rate %</span><input name="rate" inputMode="decimal" required defaultValue={item?.rate} className="input" /></label>
       <label className="field"><span className="label">Pays out to</span>
-        <select name="payoutAccountId" className="input" defaultValue=""><option value="">First bank account</option>{payoutAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+        <select name="payoutAccountId" className="input" defaultValue={item?.payoutAccountId ?? ""}><option value="">First bank account</option>{payoutAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
       </label>
-      <label className="field"><span className="label">Started on</span><input name="startOn" type="date" required defaultValue={localToday()} suppressHydrationWarning className="input" /></label>
-      <label className="field"><span className="label">Matures on</span><input name="maturityOn" type="date" required className="input" /></label>
-      <label className="field"><span className="label">Maturity amount (if the bank states it)</span><input name="maturityAmount" inputMode="decimal" className="input" /></label>
-      <div className="tx-form__end"><Msg s={s} /><button className="btn btn--primary" disabled={pending}>Add deposit</button></div>
+      <label className="field"><span className="label">Started on</span><input name="startOn" type="date" required defaultValue={item?.startOn ?? localToday()} suppressHydrationWarning className="input" /></label>
+      <label className="field"><span className="label">Matures on</span><input name="maturityOn" type="date" required defaultValue={item?.maturityOn} className="input" /></label>
+      <label className="field"><span className="label">Maturity amount (if the bank states it)</span><input name="maturityAmount" inputMode="decimal" defaultValue={item?.maturity} className="input" /></label>
+      <div className="tx-form__end"><Msg s={s} /><button className="btn btn--primary" disabled={pending}>{item ? "Save changes" : "Add deposit"}</button></div>
     </form>
   );
 }

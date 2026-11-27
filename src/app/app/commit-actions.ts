@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireWorkspace } from "@/server/session";
-import { addRevision, archiveLoan, archiveRule, autoMatch, createLoan, createRule, deleteRevision, markPaid } from "@/server/services/commitments";
+import { addRevision, archiveLoan, archiveRule, autoMatch, createLoan, createRule, deleteRevision, markPaid, updateLoan, updateRule } from "@/server/services/commitments";
 import { toMinor } from "@/lib/money";
 
 export type CommitState = { error?: string; message?: string };
@@ -29,9 +29,11 @@ export async function addLoanAction(_: CommitState, fd: FormData): Promise<Commi
   const principalMinor = principal ? toMinor(principal, cur) : null;
   if ((emi && !emiMinor) || (principal && !principalMinor)) return { error: "Amounts must be above zero" };
   try {
-    await createLoan(workspace.id, { name, lender: blank(fd.get("lender")), emiMinor, firstDueOn: firstDueOn.data, instalments, principalMinor, annualRatePct: rate, matchPattern: blank(fd.get("pattern")), accountId: blank(fd.get("accountId")) });
+    const loan = { name, lender: blank(fd.get("lender")), emiMinor, firstDueOn: firstDueOn.data, instalments, principalMinor, annualRatePct: rate, matchPattern: blank(fd.get("pattern")), accountId: blank(fd.get("accountId")) };
+    const id = blank(fd.get("id"));
+    if (id) await updateLoan(workspace.id, id, loan); else await createLoan(workspace.id, loan);
     refresh();
-    return { message: "Loan added" };
+    return { message: id ? "Saved" : "Loan added" };
   } catch (e) { return fail(e); }
 }
 
@@ -88,9 +90,11 @@ export async function addRecurringAction(_: CommitState, fd: FormData): Promise<
   if (count !== null && (!Number.isInteger(count) || count < 1)) return { error: "Number of times must be a whole number" };
   if (endOn && endOn < p.data.startOn) return { error: "End date is before the start" };
   try {
-    await createRule(workspace.id, { ...p.data, amountMinor, intervalCount: every, endOn, maxCount: count, matchPattern: blank(fd.get("pattern")), accountId: blank(fd.get("accountId")), categoryId: blank(fd.get("categoryId")), transferToAccountId: blank(fd.get("intoAccountId")) });
+    const rule = { ...p.data, amountMinor, intervalCount: every, endOn, maxCount: count, matchPattern: blank(fd.get("pattern")), accountId: blank(fd.get("accountId")), categoryId: blank(fd.get("categoryId")), transferToAccountId: blank(fd.get("intoAccountId")) };
+    const id = blank(fd.get("id"));
+    if (id) await updateRule(workspace.id, id, rule); else await createRule(workspace.id, rule);
     refresh();
-    return { message: "Recurring item added" };
+    return { message: id ? "Saved" : "Recurring item added" };
   } catch (e) { return fail(e); }
 }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useCloseWhenSaved } from "./edit-dialog";
 import { useActionState, useEffect, useRef, useTransition } from "react";
 import { Trash2 } from "lucide-react";
 import { addContributionAction, addGoalAction, archiveGoalAction, deleteBudgetAction, setBudgetAction, setBufferAction, type PlanState } from "@/app/app/plan-actions";
@@ -28,23 +29,27 @@ export function BudgetForm({ categories }: { categories: Cat[] }) {
   );
 }
 
-export function GoalForm({ savingsAccounts = [] }: { savingsAccounts?: { id: string; name: string }[] }) {
+export type EditableGoal = { id: string; name: string; target: string; targetDate: string; accountId: string; fixed: boolean };
+
+export function GoalForm({ savingsAccounts = [], item }: { savingsAccounts?: { id: string; name: string }[]; item?: EditableGoal }) {
   const [s, action, pending] = useActionState<PlanState, FormData>(addGoalAction, {});
   const ref = useReset(s);
+  useCloseWhenSaved(s);
   return (
-    <form ref={ref} action={action} className="well tx-form" aria-busy={pending}>
-      <label className="field"><span className="label">Goal</span><input name="name" required maxLength={60} placeholder="Emergency fund" className="input" /></label>
-      <label className="field"><span className="label">Target amount</span><input name="target" inputMode="decimal" required className="input" /></label>
-      <label className="field"><span className="label">By (optional)</span><input name="targetDate" type="date" className="input" /></label>
+    <form ref={ref} action={action} className={item ? "tx-form" : "well tx-form"} aria-busy={pending}>
+      {item && <input type="hidden" name="id" value={item.id} />}
+      <label className="field"><span className="label">Goal</span><input name="name" required maxLength={60} placeholder="Emergency fund" defaultValue={item?.name} className="input" /></label>
+      <label className="field"><span className="label">Target amount</span><input name="target" inputMode="decimal" required defaultValue={item?.target} className="input" /></label>
+      <label className="field"><span className="label">By (optional)</span><input name="targetDate" type="date" defaultValue={item?.targetDate} className="input" /></label>
       {savingsAccounts.length > 0 && (
         <label className="field"><span className="label">Track with an account (optional)</span>
-          <select name="accountId" className="input" defaultValue=""><option value="">Count what I add by hand</option>{savingsAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+          <select name="accountId" className="input" defaultValue={item?.accountId ?? ""}><option value="">Count what I add by hand</option>{savingsAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
         </label>
       )}
       <label className="field"><span className="label">How firm is it?</span>
-        <select name="fixed" className="input" defaultValue="no"><option value="no">Flexible: only what I put aside</option><option value="yes">Fixed: hold it back every month (needs a date)</option></select>
+        <select name="fixed" className="input" defaultValue={item?.fixed ? "yes" : "no"}><option value="no">Flexible: only what I put aside</option><option value="yes">Fixed: hold it back every month (needs a date)</option></select>
       </label>
-      <div className="tx-form__end"><Status s={s} /><button className="btn btn--primary" disabled={pending}>Add goal</button></div>
+      <div className="tx-form__end"><Status s={s} /><button className="btn btn--primary" disabled={pending}>{item ? "Save changes" : "Add goal"}</button></div>
     </form>
   );
 }

@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { HandCoins, TrendingUp, Wallet } from "lucide-react";
 import { Summary } from "@/components/summary";
+import { EditDialog } from "@/components/edit-dialog";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { ForecastChart } from "@/components/forecast-chart";
 import { AssetForm, DepositForm, EmergencyForm, MaturityButtons, ValuationForm } from "@/components/savings-forms";
@@ -109,7 +110,7 @@ async function SavingsLoader() {
                     <td className="num">{formatMinor(d.valueNowMinor, home)}</td>
                     <td>{d.matured ? <span className="error">Matured {formatDayYear(d.maturityOn)}</span> : `${formatDayYear(d.maturityOn)}, in ${d.daysLeft} days`}</td>
                     <td className="num">{formatMinor(d.maturityMinor, home)}</td>
-                    <td><MaturityButtons id={d.id} matured={d.matured} /></td>
+                    <td><span className="head-actions"><EditDialog label={`Edit ${d.name}`}><DepositForm payoutAccounts={spendable.map((a) => ({ id: a.id, name: a.name }))} item={{ id: d.id, name: d.name, principal: String(d.principalMinor / 100), rate: String(Number(d.annualRatePct)), payoutAccountId: d.payoutAccountId ?? "", startOn: d.startOn, maturityOn: d.maturityOn, maturity: String(d.maturityMinor / 100) }} /></EditDialog><MaturityButtons id={d.id} matured={d.matured} /></span></td>
                   </tr>
                 ))}
               </tbody>

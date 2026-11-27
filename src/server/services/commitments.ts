@@ -5,6 +5,7 @@ import { buildSchedule, pmt, type RevisionIn } from "@/lib/schedule";
 import { occurrences } from "@/lib/recurrence";
 import { matchExpected, type Candidate, type Expected } from "@/lib/match-expected";
 import { shiftDays, todayISO } from "@/lib/dates";
+import { rekeyDates } from "@/lib/rekey";
 import { isAssetType } from "@/lib/savings";
 import { convertToTransfer } from "@/server/services/transfers";
 
@@ -117,6 +118,53 @@ export const listRecurring = (workspaceId: string) =>
   db.select().from(recurringRules).where(and(eq(recurringRules.workspaceId, workspaceId), isNull(recurringRules.archivedAt))).orderBy(asc(recurringRules.name));
 
 export const archiveRule = (workspaceId: string, id: string) => db.update(recurringRules).set({ archivedAt: new Date() }).where(and(eq(recurringRules.id, id), eq(recurringRules.workspaceId, workspaceId)));
+
+/** Moves paid links onto the new dates after an edit (see rekeyDates). */
+async function rekeyMatches(workspaceId: string, sourceKind: "loan" | "rule", sourceId: string, dates: string[], tolerance: number) {
+  const where = and(eq(expectedMatches.workspaceId, workspaceId), eq(expectedMatches.sourceKind, sourceKind), eq(expectedMatches.sourceId, sourceId));
+  const rows = await db.select().from(expectedMatches).where(where);
+  if (!rows.length) return;
+  const to = rekeyDates(rows.map((r) => r.dueOn), dates, tolerance);
+  if (rows.every((r) => to.get(r.dueOn) === r.dueOn)) return;
+  const kept = rows.flatMap((r) => (to.get(r.dueOn) ? [{ workspaceId, sourceKind, sourceId, dueOn: to.get(r.dueOn)!, transactionId: r.transactionId }] : []));
+  await db.transaction(async (tx) => {
+    await tx.delete(expectedMatches).where(where);
+    if (kept.length) await tx.insert(expectedMatches).values(kept);
+  });
+}
+
+export async function updateRule(workspaceId: string, id: string, r: NewRule) {
+  const [old] = await db.select({ id: recurringRules.id }).from(recurringRules).where(and(eq(recurringRules.id, id), eq(recurringRules.workspaceId, workspaceId)));
+  if (!old) throw new Error("Not found");
+  await owns(accounts, workspaceId, r.accountId);
+  await owns(categories, workspaceId, r.categoryId);
+  if (r.transferToAccountId) {
+    const [dest] = await db.select({ type: accounts.type }).from(accounts).where(and(eq(accounts.id, r.transferToAccountId), eq(accounts.workspaceId, workspaceId)));
+    if (!dest || !isAssetType(dest.type)) throw new Error("Pick a savings or investment account to move the money into");
+    if (r.kind !== "expense") throw new Error("Only money going out can be saved into an account");
+  }
+  await db.update(recurringRules).set({ ...r, transferToAccountId: r.transferToAccountId ?? null }).where(eq(recurringRules.id, old.id));
+  const today = todayISO();
+  const dates = occurrences({ frequency: r.frequency, intervalCount: r.intervalCount, startOn: r.startOn, endOn: r.endOn, maxCount: r.maxCount, anchor: r.anchor, weekendShift: r.weekendShift }, shiftDays(today, -800), shiftDays(today, 400));
+  await rekeyMatches(workspaceId, "rule", id, dates, r.frequency === "weekly" ? 3 : r.frequency === "monthly" ? 15 : 45);
+  await autoMatch(workspaceId);
+}
+
+export async function updateLoan(workspaceId: string, id: string, l: NewLoan) {
+  const [old] = await db.select({ id: loans.id }).from(loans).where(and(eq(loans.id, id), eq(loans.workspaceId, workspaceId)));
+  if (!old) throw new Error("Loan not found");
+  await owns(accounts, workspaceId, l.accountId);
+  const emi = l.emiMinor ?? (l.principalMinor && l.annualRatePct !== null ? pmt(l.principalMinor, l.annualRatePct, l.instalments) : null);
+  if (!emi) throw new Error("Enter the EMI amount");
+  await db.update(loans).set({
+    name: l.name, lender: l.lender, emiMinor: emi, firstDueOn: l.firstDueOn, instalments: l.instalments, principalMinor: l.principalMinor,
+    annualRatePct: l.annualRatePct === null ? null : String(l.annualRatePct), matchPattern: l.matchPattern, accountId: l.accountId,
+  }).where(eq(loans.id, old.id));
+  const [row] = await db.select().from(loans).where(eq(loans.id, old.id));
+  const revs = await db.select().from(loanRevisions).where(and(eq(loanRevisions.workspaceId, workspaceId), eq(loanRevisions.loanId, id)));
+  await rekeyMatches(workspaceId, "loan", id, loanSchedule(row, revs).rows.map((x) => x.dueOn), 15);
+  await autoMatch(workspaceId);
+}
 
 /* ---------- expected payments ---------- */
 

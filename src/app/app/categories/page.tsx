@@ -4,6 +4,8 @@ import { CategoryForm, DeleteIcon, RuleForm } from "@/components/category-forms"
 import { requireWorkspace } from "@/server/session";
 import { listCategories } from "@/server/services/ledger";
 import { listRules } from "@/server/services/capture";
+import { EditDialog } from "@/components/edit-dialog";
+import { CategoryRenameForm } from "@/components/edit-forms";
 
 export const metadata = { title: "Categories and rules" };
 
@@ -19,7 +21,7 @@ async function CategoriesLoader() {
         <div className="well table-wrap">
           <table className="ledger">
             <thead><tr><th>Name</th><th>Kind</th><th><span className="visually-hidden">Remove</span></th></tr></thead>
-            <tbody>{categories.map((c) => <tr key={c.id}><td>{c.name}</td><td className="cap">{c.kind}</td><td><DeleteIcon kind="category" id={c.id} label={`Delete ${c.name}`} /></td></tr>)}</tbody>
+            <tbody>{categories.map((c) => <tr key={c.id}><td>{c.name}</td><td className="cap">{c.kind}</td><td><span className="head-actions"><EditDialog label={`Rename ${c.name}`}><CategoryRenameForm id={c.id} name={c.name} /></EditDialog><DeleteIcon kind="category" id={c.id} label={`Delete ${c.name}`} /></span></td></tr>)}</tbody>
           </table>
         </div>
       </section>

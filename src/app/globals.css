@@ -570,3 +570,10 @@ nav.seg .seg__opt { text-transform: none; }
 .card-form > [role="status"]:empty { display: none; }
 .when[data-tone="bad"] { background: color-mix(in oklab, var(--color-error) 16%, transparent); color: var(--color-error); }
 @media (max-width: 40rem) { .card-row__head { grid-template-columns: auto minmax(0, 1fr); } .card-row__sum { grid-column: 1 / -1; justify-items: start; } .card-form { grid-template-columns: minmax(0, 1fr); } .card-form > .btn { justify-self: stretch; } }
+/* edit dialog */
+.editor { width: min(860px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); overflow: auto; margin: auto; padding: 0; border: 0; border-radius: var(--radius-card); background: var(--color-paper-2); color: var(--color-ink); box-shadow: 0 0 0 1px var(--color-rule-2), var(--shadow-pop); text-align: left; white-space: normal; font-weight: 400; }
+.editor::backdrop { background: var(--color-scrim); }
+.editor[open] { animation: pop var(--dur-short) var(--ease-out); }
+.editor__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); padding: var(--space-lg) var(--space-lg) 0; }
+.editor .tx-form { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+@media (max-width: 40rem) { .editor .tx-form { grid-template-columns: minmax(0, 1fr); } }

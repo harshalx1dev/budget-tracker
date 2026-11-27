@@ -51,6 +51,7 @@ export async function listTransactions(workspaceId: string, limit = 100) {
       account: accounts.name,
       category: categories.name,
       categoryId: transactions.categoryId,
+      accountId: transactions.accountId,
     })
     .from(transactions)
     .innerJoin(accounts, eq(accounts.id, transactions.accountId))
@@ -94,6 +95,49 @@ export async function createTransaction(workspaceId: string, t: NewTransaction, 
     currency: acct.currency,
     fxRateToHome: acct.currency === homeCurrency ? null : t.fxRateToHome,
   });
+}
+
+/**
+ * Corrects an account: its name, quick-add words and what it holds now. The balance is fixed by moving the opening
+ * figure, so no transaction is invented. On a card the figure given is what is owed.
+ */
+export async function updateAccount(workspaceId: string, id: string, v: { name: string; aliases: string[]; balanceMinor: number | null }) {
+  const current = (await listAccounts(workspaceId)).find((a) => a.id === id);
+  if (!current) throw new Error("Account not found");
+  const [row] = await db.select({ opening: accounts.openingBalanceMinor }).from(accounts).where(eq(accounts.id, current.id));
+  const target = v.balanceMinor === null ? null : current.type === "card" ? -v.balanceMinor : v.balanceMinor;
+  await db.update(accounts).set({ name: v.name, aliases: v.aliases, ...(target === null ? {} : { openingBalanceMinor: row.opening + (target - current.balanceMinor) }) }).where(eq(accounts.id, current.id));
+}
+
+export type TransactionEdit = { amountMinor: number; occurredOn: string; kind: "income" | "expense"; accountId: string | null; categoryId: string | null; payee: string | null; note: string | null };
+
+export async function updateTransaction(workspaceId: string, id: string, v: TransactionEdit) {
+  const [tx] = await db.select().from(transactions).where(and(eq(transactions.id, id), eq(transactions.workspaceId, workspaceId)));
+  if (!tx) throw new Error("Entry not found");
+  // A transfer is two legs that must agree, so only what they share can change.
+  if (tx.transferId) {
+    await db.update(transactions).set({ amountMinor: v.amountMinor, occurredOn: v.occurredOn }).where(and(eq(transactions.workspaceId, workspaceId), eq(transactions.transferId, tx.transferId)));
+    return;
+  }
+  const [acct] = await db.select().from(accounts).where(and(eq(accounts.id, v.accountId ?? tx.accountId), eq(accounts.workspaceId, workspaceId)));
+  if (!acct) throw new Error("Account not found");
+  if (acct.currency !== tx.currency) throw new Error("That account uses another currency");
+  if (v.categoryId) {
+    const [c] = await db.select({ kind: categories.kind }).from(categories).where(and(eq(categories.id, v.categoryId), eq(categories.workspaceId, workspaceId)));
+    if (!c || c.kind !== v.kind) throw new Error("Category not found");
+  }
+  await db.update(transactions).set({
+    amountMinor: v.amountMinor, occurredOn: v.occurredOn, kind: v.kind, accountId: acct.id, categoryId: v.categoryId, payee: v.payee, note: v.note,
+    ...(v.categoryId ? { status: "confirmed" as const } : {}),
+  }).where(eq(transactions.id, tx.id));
+}
+
+export async function renameCategory(workspaceId: string, id: string, name: string) {
+  const [c] = await db.select().from(categories).where(and(eq(categories.id, id), eq(categories.workspaceId, workspaceId)));
+  if (!c) throw new Error("Category not found");
+  const clash = await db.select({ id: categories.id }).from(categories).where(and(eq(categories.workspaceId, workspaceId), eq(categories.name, name), eq(categories.kind, c.kind)));
+  if (clash.some((x) => x.id !== id)) throw new Error("You already have a category with that name");
+  await db.update(categories).set({ name }).where(eq(categories.id, c.id));
 }
 
 export async function deleteTransaction(workspaceId: string, id: string) {
