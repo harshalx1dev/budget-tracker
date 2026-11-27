@@ -6,6 +6,7 @@ import {
   addLoanAction, addRecurringAction, addRevisionAction, archiveLoanAction, archiveRecurringAction, markPaidAction, matchNowAction, removeRevisionAction,
   type CommitState,
 } from "@/app/app/commit-actions";
+import { Field } from "./field";
 
 type Acct = { id: string; name: string };
 type Cat = { id: string; name: string; kind: "income" | "expense" };
@@ -27,18 +28,17 @@ export function LoanForm({ accounts }: { accounts: Acct[] }) {
   const ref = useResetOnSuccess(s);
   return (
     <form ref={ref} action={action} className="well tx-form" aria-busy={pending}>
-      <label className="field"><span className="label">Name</span><input name="name" required maxLength={60} placeholder="Phone EMI" className="input" /></label>
-      <label className="field"><span className="label">EMI amount</span><input name="EMI" inputMode="decimal" required className="input" /></label>
-      <label className="field"><span className="label">Next due date</span><input name="firstDueOn" type="date" required defaultValue={localToday()} suppressHydrationWarning className="input" /></label>
-      <label className="field"><span className="label">Instalments left</span><input name="instalments" inputMode="numeric" required className="input" /></label>
-      <label className="field"><span className="label">Text in your statement</span><input name="pattern" maxLength={60} placeholder="Hdbfinancial" className="input" /></label>
-      <label className="field"><span className="label">Paid from</span>
+      <Field label="Name"><input name="name" required maxLength={60} placeholder="Phone EMI" className="input" /></Field>
+      <Field label="Monthly payment (EMI)" hint="Leave empty if you know the amount still owed and the interest rate: the payment is worked out from those."><input name="emi" inputMode="decimal" className="input" /></Field>
+      <Field label="Next payment date"><input name="firstDueOn" type="date" required defaultValue={localToday()} suppressHydrationWarning className="input" /></Field>
+      <Field label="Payments left" hint="How many monthly payments are still to be made, counting the next one."><input name="instalments" inputMode="numeric" required className="input" /></Field>
+      <Field label="Statement text (optional)" hint="A few words your bank prints on this payment, for example HDBFINANCIAL. When you import a statement, a matching line marks the payment as paid."><input name="pattern" maxLength={60} placeholder="HDBFINANCIAL" className="input" /></Field>
+      <Field label="Paid from">
         <select name="accountId" className="input" defaultValue=""><option value="">Any account</option>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
-      </label>
-      <label className="field"><span className="label">Lender (optional)</span><input name="lender" maxLength={60} className="input" /></label>
-      <span />
-      <label className="field"><span className="label">Balance left (optional)</span><input name="principal" inputMode="decimal" className="input" /></label>
-      <label className="field"><span className="label">Interest rate % (optional)</span><input name="rate" inputMode="decimal" className="input" /></label>
+      </Field>
+      <Field label="Lender (optional)"><input name="lender" maxLength={60} className="input" /></Field>
+      <Field label="Amount still owed (optional)" hint="The loan balance today. It lets the app show interest left and count the loan in your net worth."><input name="principal" inputMode="decimal" className="input" /></Field>
+      <Field label="Yearly interest % (optional)"><input name="rate" inputMode="decimal" className="input" /></Field>
       <div className="tx-form__end"><Status s={s} /><button className="btn btn--primary" disabled={pending}>Add loan</button></div>
     </form>
   );
@@ -47,13 +47,13 @@ export function LoanForm({ accounts }: { accounts: Acct[] }) {
 export function RevisionForm({ loanId, hasBalance }: { loanId: string; hasBalance: boolean }) {
   const [s, action, pending] = useActionState<CommitState, FormData>(addRevisionAction, {});
   const ref = useResetOnSuccess(s);
-  const [kind, setKind] = useState("EMI");
+  const [kind, setKind] = useState("emi");
   return (
     <form ref={ref} action={action} className="well tx-form" aria-busy={pending}>
       <input type="hidden" name="loanId" value={loanId} />
       <label className="field"><span className="label">What changed</span>
         <select name="kind" className="input" value={kind} onChange={(e) => setKind(e.target.value)}>
-          <option value="EMI">EMI amount</option>
+          <option value="emi">EMI amount</option>
           <option value="rate" disabled={!hasBalance}>Interest rate</option>
           <option value="prepayment" disabled={!hasBalance}>Part-prepayment</option>
         </select>
@@ -66,38 +66,51 @@ export function RevisionForm({ loanId, hasBalance }: { loanId: string; hasBalanc
   );
 }
 
-export function RecurringForm({ accounts, categories, savingsAccounts = [] }: { accounts: Acct[]; categories: Cat[]; savingsAccounts?: Acct[] }) {
+const UNIT = { weekly: "week", monthly: "month", yearly: "year" } as const;
+
+export function RecurringForm({ accounts, categories, savingsAccounts = [] }: { accounts: (Acct & { type?: string })[]; categories: Cat[]; savingsAccounts?: Acct[] }) {
   const [s, action, pending] = useActionState<CommitState, FormData>(addRecurringAction, {});
   const ref = useResetOnSuccess(s);
+  const [kind, setKind] = useState<"expense" | "income">("expense");
+  const [frequency, setFrequency] = useState<keyof typeof UNIT>("monthly");
+  const income = kind === "income";
+  // Money does not arrive on a credit card.
+  const places = income ? accounts.filter((a) => a.type !== "card") : accounts;
   return (
-    <form ref={ref} action={action} className="well tx-form" aria-busy={pending}>
-      <label className="field"><span className="label">Name</span><input name="name" required maxLength={60} placeholder="Rent" className="input" /></label>
-      <label className="field"><span className="label">Kind</span><select name="kind" className="input"><option value="expense">Expense</option><option value="income">Income</option></select></label>
-      <label className="field"><span className="label">Amount</span><input name="amount" inputMode="decimal" required className="input" /></label>
-      <label className="field"><span className="label">Repeats</span><select name="frequency" className="input" defaultValue="monthly"><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select></label>
-      <label className="field"><span className="label">Every</span><input name="every" inputMode="numeric" defaultValue="1" className="input" /></label>
-      <label className="field"><span className="label">On which day</span>
-        <select name="anchor" className="input" defaultValue="start_day"><option value="start_day">Same day each month</option><option value="month_end">Last day of the month</option></select>
-      </label>
-      <label className="field"><span className="label">If it lands on a weekend</span>
-        <select name="weekendShift" className="input" defaultValue="none"><option value="none">Leave it</option><option value="sunday_back">Sunday goes back a day</option><option value="weekend_back">Weekend goes back to friday</option></select>
-      </label>
-      <label className="field"><span className="label">Starts</span><input name="startOn" type="date" required defaultValue={localToday()} suppressHydrationWarning className="input" /></label>
-      <label className="field"><span className="label">Ends on (optional)</span><input name="endOn" type="date" className="input" /></label>
-      <label className="field"><span className="label">Or after this many times</span><input name="count" inputMode="numeric" className="input" /></label>
-      <label className="field"><span className="label">Text in your statement</span><input name="pattern" maxLength={60} placeholder="Netflix" className="input" /></label>
-      <label className="field"><span className="label">Paid from</span>
-        <select name="accountId" className="input" defaultValue=""><option value="">Any account</option>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
-      </label>
-      <label className="field"><span className="label">Category</span>
-        <select name="categoryId" className="input" defaultValue=""><option value="">None</option>{categories.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.kind})</option>)}</select>
-      </label>
-      {savingsAccounts.length > 0 && (
-        <label className="field"><span className="label">Saved into (for SIPs and deposits)</span>
-          <select name="intoAccountId" className="input" defaultValue=""><option value="">Spent, not saved</option>{savingsAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
-        </label>
+    <form ref={ref} action={action} onReset={() => { setKind("expense"); setFrequency("monthly"); }} className="well tx-form" aria-busy={pending}>
+      <Field label="Name"><input name="name" required maxLength={60} placeholder={income ? "Salary" : "Rent"} className="input" /></Field>
+      <Field label="Money out or in">
+        <select name="kind" className="input" value={kind} onChange={(e) => setKind(e.target.value as "expense" | "income")}><option value="expense">Out: a bill or payment</option><option value="income">In: income</option></select>
+      </Field>
+      <Field label="Amount"><input name="amount" inputMode="decimal" required className="input" /></Field>
+      <Field label="How often">
+        <select name="frequency" className="input" value={frequency} onChange={(e) => setFrequency(e.target.value as keyof typeof UNIT)}><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select>
+      </Field>
+      <Field label={`Every how many ${UNIT[frequency]}s`} hint={`Leave it at 1 for every ${UNIT[frequency]}. Enter 3 for once every three ${UNIT[frequency]}s.`}><input name="every" inputMode="numeric" defaultValue="1" className="input" /></Field>
+      {frequency === "monthly" && (
+        <Field label="Day of the month" hint="Same date repeats the day of the first date below. Last day follows the end of each month, whether it has 28, 30 or 31 days.">
+          <select name="anchor" className="input" defaultValue="start_day"><option value="start_day">Same date each month</option><option value="month_end">Last day of the month</option></select>
+        </Field>
       )}
-      <div className="tx-form__end"><Status s={s} /><button className="btn btn--primary" disabled={pending}>Add recurring item</button></div>
+      <Field label="If that day is a weekend" hint="Banks often move a payment that falls on a weekend. Choose what happens to yours.">
+        <select name="weekendShift" className="input" defaultValue="none"><option value="none">Keep that day</option><option value="sunday_back">Sunday moves to Saturday</option><option value="weekend_back">Saturday or Sunday moves to Friday</option></select>
+      </Field>
+      <Field label="First date" hint={`The first time this ${income ? "arrives" : "is paid"}. Pick the next one if you only want to plan ahead.`}><input name="startOn" type="date" required defaultValue={localToday()} suppressHydrationWarning className="input" /></Field>
+      <Field label="Last date (optional)" hint="Leave empty if it carries on with no end."><input name="endOn" type="date" className="input" /></Field>
+      <Field label="Or stop after (optional)" hint="The total number of times it happens, for example 12 for a one-year plan."><input name="count" inputMode="numeric" placeholder="Number of times" className="input" /></Field>
+      <Field label="Statement text (optional)" hint={`A few words your bank prints on this ${income ? "credit" : "payment"}. When you import a statement, a matching line marks it as ${income ? "received" : "paid"}.`}><input name="pattern" maxLength={60} placeholder={income ? "Employer name" : "NETFLIX"} className="input" /></Field>
+      <Field label={income ? "Received in" : "Paid from"}>
+        <select key={kind} name="accountId" className="input" defaultValue=""><option value="">Any account</option>{places.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+      </Field>
+      <Field label="Category (optional)">
+        <select key={kind} name="categoryId" className="input" defaultValue={income ? (categories.find((c) => c.kind === "income" && c.name === "Salary")?.id ?? "") : ""}><option value="">None</option>{categories.filter((c) => c.kind === kind).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+      </Field>
+      {!income && savingsAccounts.length > 0 && (
+        <Field label="Moves into savings (optional)" hint="For a SIP or recurring deposit: the money goes into this savings account and is not counted as spending.">
+          <select name="intoAccountId" className="input" defaultValue=""><option value="">No, it is spent</option>{savingsAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+        </Field>
+      )}
+      <div className="tx-form__end"><Status s={s} /><button className="btn btn--primary" disabled={pending}>{income ? "Add income" : "Add bill"}</button></div>
     </form>
   );
 }

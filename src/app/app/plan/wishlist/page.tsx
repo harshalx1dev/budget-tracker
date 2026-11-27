@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { Pencil, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { BoughtButton, BuyUnitsForm, LinkChip, LinkForm, RatioForm, RemoveIcon, StatusSelect, UseOptionButton, WishForm } from "@/components/wish-forms";
@@ -70,9 +71,9 @@ async function WishlistLoader({ searchParams }: { searchParams: Query }) {
                 {i.emiOption && (
                   <p className="label">On EMI: {money(i.emiOption.monthlyMinor)} a month for {i.emiOption.tenure} months{i.emiOption.downMinor ? ` after ${money(i.emiOption.downMinor)} down` : ""}, at {i.emiOption.ratePct}%{i.emiOption.assumed ? " (your assumed rate)" : ""}{i.emiOption.interestMinor > 0 ? `, ${money(i.emiOption.interestMinor)} interest` : ""}.</p>
                 )}
-                <details className="wish__more">
-                  <summary className="link">Details, options and editing</summary>
-                  <div className="stack-sm">
+                <details className="more-line">
+                  <summary><SlidersHorizontal size={15} aria-hidden />Details, options and editing</summary>
+                  <div className="more-line__body stack-sm">
                     <p className="label">{KIND[i.type]}.{i.targetDate ? ` Wanted by ${formatDayYear(i.targetDate)}.` : ""}{o.interestMinor ? ` EMI interest ${money(o.interestMinor)}.` : ""}{i.notes ? ` ${i.notes}` : ""}</p>
                     {i.links.length > 0 && (
                       <ul className="options">
@@ -85,8 +86,8 @@ async function WishlistLoader({ searchParams }: { searchParams: Query }) {
                       </ul>
                     )}
                     <LinkForm itemId={i.id} />
-                    <details className="wish__more">
-                      <summary className="link">Edit this item</summary>
+                    <details className="more-line">
+                      <summary><Pencil size={15} aria-hidden />Edit this item</summary>
                       <WishForm key={JSON.stringify([i.title, i.priceMinor, i.quantity, i.type, i.priority, i.notes, i.targetDate, i.categoryId, i.downPaymentMinor, i.emiTenureMonths, i.emiRatePct])} categories={expense} item={{
                         id: i.id, title: i.title, price: String(i.priceMinor / 100), quantity: i.quantity, type: i.type, priority: i.priority, targetDate: i.targetDate, categoryId: i.categoryId, notes: i.notes,
                         down: i.downPaymentMinor ? String(i.downPaymentMinor / 100) : "", tenure: i.emiTenureMonths, rate: i.emiRatePct === null ? "" : String(Number(i.emiRatePct)),

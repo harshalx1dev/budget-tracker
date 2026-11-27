@@ -34,7 +34,7 @@ async function CommitmentsLoader() {
   }));
   const monthly = loanRows.reduce((s, r) => s + (r.next?.amountMinor ?? 0), 0);
   const cards = await listCards(workspace.id);
-  const accountOpts = accounts.filter((a) => !isAssetType(a.type)).map((a) => ({ id: a.id, name: a.name }));
+  const accountOpts = accounts.filter((a) => !isAssetType(a.type)).map((a) => ({ id: a.id, name: a.name, type: a.type }));
 
   return (
     <div className="settle stack">

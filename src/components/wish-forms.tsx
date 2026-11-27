@@ -29,7 +29,7 @@ export function WishForm({ categories, item }: { categories: Cat[]; item?: Edita
   return (
     <form ref={ref} action={action} className={item ? "tx-form wish__edit" : "well tx-form"} aria-busy={pending}>
       {item && <input type="hidden" name="id" value={item.id} />}
-      <label className="field"><span className="label">What</span><input name="title" required maxLength={80} placeholder="55 inch tv" defaultValue={item?.title} className="input" /></label>
+      <label className="field"><span className="label">What</span><input name="title" required maxLength={80} placeholder="55 inch TV" defaultValue={item?.title} className="input" /></label>
       <label className="field"><span className="label">Price of one</span><input name="price" inputMode="decimal" required defaultValue={item?.price} className="input" /></label>
       <label className="field"><span className="label">How many</span><input name="quantity" inputMode="numeric" required defaultValue={item?.quantity ?? 1} className="input" /></label>
       <label className="field"><span className="label">Kind</span>
@@ -38,7 +38,7 @@ export function WishForm({ categories, item }: { categories: Cat[]; item?: Edita
       <label className="field"><span className="label">Priority</span>
         <select name="priority" className="input" defaultValue={String(item?.priority ?? 2)}><option value="1">High</option><option value="2">Medium</option><option value="3">Low</option></select>
       </label>
-      {!item && <label className="field"><span className="label">Link (optional)</span><input name="url" maxLength={500} placeholder="Https://" className="input" /></label>}
+      {!item && <label className="field"><span className="label">Link (optional)</span><input name="url" maxLength={500} placeholder="https://" className="input" /></label>}
       <label className="field"><span className="label">Want it by (optional)</span><input name="targetDate" type="date" defaultValue={item?.targetDate ?? ""} className="input" /></label>
       <label className="field"><span className="label">Category (optional)</span>
         <select name="categoryId" className="input" defaultValue={item?.categoryId ?? ""}><option value="">None</option>{categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>

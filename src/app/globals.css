@@ -529,8 +529,6 @@ details.more > summary.btn { width: fit-content; }
 .when { display: inline-block; padding: 4px var(--space-sm); border-radius: var(--radius-pill); background: var(--color-paper-3); font-size: var(--text-sm); font-weight: 500; }
 .when[data-tone="now"] { background: color-mix(in oklab, var(--color-success) 16%, transparent); color: var(--color-success); }
 .when[data-tone="soon"] { background: var(--color-brass-soft); color: var(--color-brass-ink); }
-.wish__more > summary { cursor: pointer; font-size: var(--text-sm); width: fit-content; }
-.wish__more[open] > summary { margin-bottom: var(--space-sm); }
 .seg__opt { text-decoration: none; }
 nav.seg .seg__opt { text-transform: none; }
 .options { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-xs); }
@@ -545,3 +543,30 @@ nav.seg .seg__opt { text-transform: none; }
 .wish__controls { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-md); }
 .wish__controls .field select.input { min-width: 170px; }
 @media (max-width: 40rem) { .wish__controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } .wish__controls .field select.input { min-width: 0; width: 100%; } }
+/* a field with an explanation: the info button sits by the label, the text opens under it within the field's width */
+.field--hinted { position: relative; }
+.field__top { display: flex; align-items: center; gap: var(--space-2xs); min-height: 20px; }
+.hint { display: inline-grid; place-items: center; width: 24px; height: 24px; margin-block: -4px; border: 0; border-radius: 50%; padding: 0; background: transparent; color: var(--color-muted); cursor: help; }
+.hint:hover, .hint[aria-expanded="true"] { color: var(--color-ink); background: var(--color-paper-3); }
+.hint__text { position: absolute; z-index: var(--z-dropdown); left: 0; right: 0; top: 26px; padding: var(--space-sm); border-radius: var(--radius-control); background: var(--color-paper-2); color: var(--color-ink); box-shadow: 0 0 0 1px var(--color-rule-2), 0 14px 30px rgb(0 0 0 / 0.25); font-size: var(--text-sm); line-height: 1.45; }
+
+/* ───────── small disclosures: a quiet button with an icon and a turning chevron, opening an inset panel ───────── */
+.more-line > summary { list-style: none; display: inline-flex; align-items: center; gap: var(--space-xs); width: fit-content; min-height: 34px; padding: 0 var(--space-sm); border-radius: var(--radius-pill); box-shadow: inset 0 0 0 1px var(--color-rule); color: var(--color-ink-2); font: 500 var(--text-sm)/1 var(--font-body); cursor: pointer; transition: background-color var(--dur-short) var(--ease-out), box-shadow var(--dur-short) var(--ease-out), color var(--dur-short) var(--ease-out); }
+.more-line > summary::-webkit-details-marker { display: none; }
+.more-line > summary::after { content: ""; width: 6px; height: 6px; margin: -3px 2px 0 var(--space-2xs); border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); transition: rotate var(--dur-short) var(--ease-out), translate var(--dur-short) var(--ease-out); }
+.more-line[open] > summary::after { rotate: 180deg; translate: 0 3px; }
+.more-line > summary:hover { background: var(--color-paper-3); color: var(--color-ink); box-shadow: inset 0 0 0 1px var(--color-rule-2); }
+.more-line[open] > summary { background: var(--color-paper-3); color: var(--color-ink); }
+.more-line__body { margin-top: var(--space-sm); padding: var(--space-md); border-radius: var(--radius-card); background: color-mix(in oklab, var(--color-paper) 60%, transparent); box-shadow: inset 0 0 0 1px var(--color-rule); }
+.more-line .more-line { margin-top: var(--space-2xs); }
+.more-line .more-line > .wish__edit { margin-top: var(--space-sm); }
+/* credit cards */
+.card-row { gap: var(--space-md); }
+.card-row__head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--space-md); }
+.card-row__sum { display: grid; justify-items: end; gap: var(--space-2xs); }
+.card-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 220px)); align-items: end; gap: var(--space-md); }
+.card-form > .btn { justify-self: start; }
+.card-form > [role="status"] { grid-column: 1 / -1; }
+.card-form > [role="status"]:empty { display: none; }
+.when[data-tone="bad"] { background: color-mix(in oklab, var(--color-error) 16%, transparent); color: var(--color-error); }
+@media (max-width: 40rem) { .card-row__head { grid-template-columns: auto minmax(0, 1fr); } .card-row__sum { grid-column: 1 / -1; justify-items: start; } .card-form { grid-template-columns: minmax(0, 1fr); } .card-form > .btn { justify-self: stretch; } }
