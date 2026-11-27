@@ -42,7 +42,7 @@ export function LoanForm({ accounts, item }: { accounts: Acct[]; item?: Editable
         <select name="accountId" className="input" defaultValue={item?.accountId ?? ""}><option value="">Any account</option>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
       </Field>
       <Field label="Lender (optional)"><input name="lender" maxLength={60} defaultValue={item?.lender} className="input" /></Field>
-      <Field label="Amount still owed (optional)" hint="The loan balance today. It lets the app show interest left and count the loan in your net worth."><input name="principal" inputMode="decimal" defaultValue={item?.principal} className="input" /></Field>
+      <Field label={item ? "Owed at the first payment (optional)" : "Amount still owed (optional)"} hint={item ? "The loan balance just before the first payment date above, not today's. The app subtracts the payments made since." : "The loan balance today. It lets the app show interest left and count the loan in your net worth."}><input name="principal" inputMode="decimal" defaultValue={item?.principal} className="input" /></Field>
       <Field label="Yearly interest % (optional)"><input name="rate" inputMode="decimal" defaultValue={item?.rate} className="input" /></Field>
       <div className="tx-form__end"><Status s={s} /><button className="btn btn--primary" disabled={pending}>{item ? "Save changes" : "Add loan"}</button></div>
     </form>

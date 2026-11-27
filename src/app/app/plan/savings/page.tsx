@@ -11,7 +11,7 @@ import { emergencyFund, listAssets, listDeposits, listSnapshots, netWorthNow } f
 import { monthlyTotals } from "@/server/services/reports";
 import { formatMinor } from "@/lib/money";
 import { formatDay, formatDayYear, thisMonth } from "@/lib/dates";
-import { isAssetType, savingsRate, TYPE_LABELS } from "@/lib/savings";
+import { fdMaturityEstimate, isAssetType, savingsRate, TYPE_LABELS } from "@/lib/savings";
 
 export const metadata = { title: "Savings" };
 
@@ -110,7 +110,7 @@ async function SavingsLoader() {
                     <td className="num">{formatMinor(d.valueNowMinor, home)}</td>
                     <td>{d.matured ? <span className="error">Matured {formatDayYear(d.maturityOn)}</span> : `${formatDayYear(d.maturityOn)}, in ${d.daysLeft} days`}</td>
                     <td className="num">{formatMinor(d.maturityMinor, home)}</td>
-                    <td><span className="head-actions"><EditDialog label={`Edit ${d.name}`}><DepositForm payoutAccounts={spendable.map((a) => ({ id: a.id, name: a.name }))} item={{ id: d.id, name: d.name, principal: String(d.principalMinor / 100), rate: String(Number(d.annualRatePct)), payoutAccountId: d.payoutAccountId ?? "", startOn: d.startOn, maturityOn: d.maturityOn, maturity: String(d.maturityMinor / 100) }} /></EditDialog><MaturityButtons id={d.id} matured={d.matured} /></span></td>
+                    <td><span className="head-actions"><EditDialog label={`Edit ${d.name}`}><DepositForm payoutAccounts={spendable.map((a) => ({ id: a.id, name: a.name }))} item={{ id: d.id, name: d.name, principal: String(d.principalMinor / 100), rate: String(Number(d.annualRatePct)), payoutAccountId: d.payoutAccountId ?? "", startOn: d.startOn, maturityOn: d.maturityOn, maturity: d.maturityMinor === fdMaturityEstimate(d.principalMinor, Number(d.annualRatePct), d.startOn, d.maturityOn) ? "" : String(d.maturityMinor / 100) }} /></EditDialog><MaturityButtons id={d.id} matured={d.matured} /></span></td>
                   </tr>
                 ))}
               </tbody>

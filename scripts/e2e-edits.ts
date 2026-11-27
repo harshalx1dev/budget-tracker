@@ -63,6 +63,7 @@ async function main() {
   await renameCategory(ws, food.id, "Eating out");
   ok((await listCategories(ws)).some((c) => c.id === food.id && c.name === "Eating out"), "a category can be renamed");
   await renameCategory(ws, food.id, "Food & dining");
+  ok(await throws(() => renameCategory(ws, cats.find((c) => c.name === "EMI")!.id, "Loans")), "a category the app files into keeps its name");
 
   await addGoal(ws, "Trip", R(10000), null);
   const g = (await listGoals(ws))[0];

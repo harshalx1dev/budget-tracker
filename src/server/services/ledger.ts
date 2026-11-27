@@ -135,6 +135,8 @@ export async function updateTransaction(workspaceId: string, id: string, v: Tran
 export async function renameCategory(workspaceId: string, id: string, name: string) {
   const [c] = await db.select().from(categories).where(and(eq(categories.id, id), eq(categories.workspaceId, workspaceId)));
   if (!c) throw new Error("Category not found");
+  // These are looked up by name when the app books a loan payment, interest or untracked cash.
+  if (["EMI", "Interest", "Untracked cash", "Other income"].includes(c.name) && name !== c.name) throw new Error(`The app files entries under "${c.name}", so it keeps its name`);
   const clash = await db.select({ id: categories.id }).from(categories).where(and(eq(categories.workspaceId, workspaceId), eq(categories.name, name), eq(categories.kind, c.kind)));
   if (clash.some((x) => x.id !== id)) throw new Error("You already have a category with that name");
   await db.update(categories).set({ name }).where(eq(categories.id, c.id));
