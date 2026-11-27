@@ -85,6 +85,13 @@
       "when": 1795778032519,
       "tag": "0011_yielding_red_wolf",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1795782986506,
+      "tag": "0012_striped_mentallo",
+      "breakpoints": true
     }
   ]
 }

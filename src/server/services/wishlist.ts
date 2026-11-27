@@ -1,14 +1,15 @@
 import "server-only";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db, schema } from "@/server/db";
 import { forecast, listGoals, safeToSpend } from "@/server/services/planner";
+import { todayISO } from "@/lib/dates";
 import { bestPlan, emiPlan, outrightPlan, sequence, type State, type Wish } from "@/lib/affordability";
 
 const { categories, wishlistItems, wishlistLinks, workspaces } = schema;
 
 export type NewWish = {
   title: string; priceMinor: number; type: "need" | "want" | "desire"; priority: number; targetDate: string | null; notes: string | null;
-  categoryId: string | null; downPaymentMinor: number | null; emiTenureMonths: number | null; emiRatePct: number | null;
+  categoryId: string | null; downPaymentMinor: number | null; emiTenureMonths: number | null; emiRatePct: number | null; quantity?: number;
 };
 
 export async function addWish(workspaceId: string, w: NewWish) {
@@ -24,11 +25,52 @@ export async function addWish(workspaceId: string, w: NewWish) {
 export async function listWishlist(workspaceId: string) {
   const items = await db.select().from(wishlistItems).where(eq(wishlistItems.workspaceId, workspaceId)).orderBy(asc(wishlistItems.priority), desc(wishlistItems.createdAt));
   const links = items.length ? await db.select().from(wishlistLinks).where(and(eq(wishlistLinks.workspaceId, workspaceId), inArray(wishlistLinks.itemId, items.map((i) => i.id)))).orderBy(asc(wishlistLinks.createdAt)) : [];
-  return items.map((i) => ({ ...i, links: links.filter((l) => l.itemId === i.id) }));
+  // remainingMinor is what is still to be spent on it.
+  return items.map((i) => ({ ...i, remainingMinor: i.priceMinor * Math.max(0, i.quantity - i.boughtCount), links: links.filter((l) => l.itemId === i.id) }));
 }
 
 export async function setWishStatus(workspaceId: string, id: string, status: "wanted" | "planned" | "bought" | "dropped", boughtOn: string | null) {
-  await db.update(wishlistItems).set({ status, boughtOn: status === "bought" ? boughtOn : null }).where(and(eq(wishlistItems.id, id), eq(wishlistItems.workspaceId, workspaceId)));
+  // All of it is bought, or none is when something fully bought goes back on the list.
+  const boughtCount = status === "bought" ? sql`${wishlistItems.quantity}` : sql`case when ${wishlistItems.boughtCount} >= ${wishlistItems.quantity} then 0 else ${wishlistItems.boughtCount} end`;
+  await db.update(wishlistItems).set({ status, boughtOn: status === "bought" ? boughtOn : null, boughtCount }).where(and(eq(wishlistItems.id, id), eq(wishlistItems.workspaceId, workspaceId)));
+}
+
+async function ownItem(workspaceId: string, id: string) {
+  const [it] = await db.select().from(wishlistItems).where(and(eq(wishlistItems.id, id), eq(wishlistItems.workspaceId, workspaceId)));
+  if (!it) throw new Error("Item not found");
+  return it;
+}
+
+/** Record that some of it has been bought. Buying the last one moves the item to bought. */
+export async function buyUnits(workspaceId: string, id: string, count: number, on: string) {
+  const it = await ownItem(workspaceId, id);
+  const left = it.quantity - it.boughtCount;
+  if (!Number.isInteger(count) || count < 1 || count > left) throw new Error(`Enter a number from 1 to ${left}`);
+  const boughtCount = it.boughtCount + count;
+  const done = boughtCount === it.quantity;
+  await db.update(wishlistItems).set({ boughtCount, ...(done ? { status: "bought" as const, boughtOn: on } : {}) }).where(eq(wishlistItems.id, it.id));
+}
+
+export async function updateWish(workspaceId: string, id: string, w: NewWish) {
+  const it = await ownItem(workspaceId, id);
+  if (w.categoryId) {
+    const [c] = await db.select({ id: categories.id }).from(categories).where(and(eq(categories.id, w.categoryId), eq(categories.workspaceId, workspaceId)));
+    if (!c) throw new Error("Category not found");
+  }
+  const quantity = w.quantity ?? it.quantity;
+  if (quantity < it.boughtCount) throw new Error(`You have already bought ${it.boughtCount}`);
+  if (w.emiTenureMonths !== null && w.emiRatePct === null) w.emiRatePct = 0;
+  await db.update(wishlistItems).set({
+    ...w, quantity, emiRatePct: w.emiRatePct === null ? null : String(w.emiRatePct),
+    ...(it.boughtCount >= quantity ? { status: "bought" as const, boughtOn: it.boughtOn ?? todayISO() } : it.status === "bought" ? { status: "wanted" as const, boughtOn: null } : {}),
+  }).where(eq(wishlistItems.id, it.id));
+}
+
+/** Go with one of the options: its price becomes the item's price. */
+export async function chooseLink(workspaceId: string, linkId: string) {
+  const [l] = await db.select().from(wishlistLinks).where(and(eq(wishlistLinks.id, linkId), eq(wishlistLinks.workspaceId, workspaceId)));
+  if (!l?.priceMinor) throw new Error("That option has no price");
+  await db.update(wishlistItems).set({ priceMinor: l.priceMinor }).where(and(eq(wishlistItems.id, l.itemId), eq(wishlistItems.workspaceId, workspaceId)));
 }
 
 export const deleteWish = (workspaceId: string, id: string) => db.delete(wishlistItems).where(and(eq(wishlistItems.id, id), eq(wishlistItems.workspaceId, workspaceId)));
@@ -83,8 +125,8 @@ export async function affordability(workspaceId: string, homeCurrency: string) {
   const [items, { fc, state, ws }] = await Promise.all([listWishlist(workspaceId), loadState(workspaceId, homeCurrency)]);
   const active = items.filter((i) => i.status === "wanted" || i.status === "planned");
   const wishes: Wish[] = active.map((i) => ({
-    id: i.id, title: i.title, priceMinor: i.priceMinor, type: i.type, priority: i.priority,
-    financing: i.emiTenureMonths ? { downMinor: i.downPaymentMinor ?? 0, tenure: i.emiTenureMonths, ratePct: Number(i.emiRatePct ?? 0) } : null,
+    id: i.id, title: i.title, priceMinor: i.remainingMinor, type: i.type, priority: i.priority,
+    financing: i.emiTenureMonths ? { downMinor: Math.min(i.downPaymentMinor ?? 0, i.remainingMinor), tenure: i.emiTenureMonths, ratePct: Number(i.emiRatePct ?? 0) } : null,
   }));
   const monthOf = (idx: number) => fc.rows[idx].month;
   const independent = new Map(wishes.map((w) => {
@@ -94,7 +136,7 @@ export async function affordability(workspaceId: string, homeCurrency: string) {
   const order = sequence(wishes, state).map(({ wish, plan }) => ({
     id: wish.id,
     title: wish.title,
-    priceMinor: wish.priceMinor,
+    priceMinor: wish.priceMinor, // still to be spent
     month: plan ? monthOf(plan.index) : null,
     method: plan?.method ?? null,
     emiMinor: plan?.method === "emi" ? plan.emiMinor : null,

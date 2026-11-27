@@ -285,7 +285,10 @@ export const wishlistItems = pgTable("wishlist_items", {
   workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
   categoryId: text("category_id").references(() => categories.id, { onDelete: "set null" }),
   title: text("title").notNull(),
-  priceMinor: money("price_minor").notNull(), // workspace home currency
+  priceMinor: money("price_minor").notNull(), // each, in the workspace home currency
+  // Things bought a few at a time, like fourteen ceiling lights.
+  quantity: integer("quantity").notNull().default(1),
+  boughtCount: integer("bought_count").notNull().default(0),
   type: wishType("type").notNull().default("want"),
   priority: integer("priority").notNull().default(2), // 1 high, 2 medium, 3 low
   targetDate: date("target_date"),

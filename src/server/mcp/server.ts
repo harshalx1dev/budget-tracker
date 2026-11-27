@@ -101,7 +101,7 @@ export function createBudgetServer(auth: McpAuth) {
     const a = await affordability(ws.id, home);
     return {
       buffer: toMajor(a.buffer, home), maxEmiShareOfIncomePercent: a.maxRatioPct,
-      items: a.items.map((i) => ({ title: clip(i.title, 80), price: toMajor(i.priceMinor, home), type: i.type, priority: i.priority, status: i.status, links: i.links.map((l) => ({ url: clip(l.url, 300), label: clip(l.label, 60) })), canPayInFullFrom: i.outrightMonth, canTakeEmiFrom: i.emi ? { month: i.emi.month, monthlyEmi: toMajor(i.emi.emiMinor, home), months: i.emi.tenure } : null })),
+      items: a.items.map((i) => ({ title: clip(i.title, 80), price: toMajor(i.remainingMinor, home), priceEach: toMajor(i.priceMinor, home), quantity: i.quantity, bought: i.boughtCount, type: i.type, priority: i.priority, status: i.status, links: i.links.map((l) => ({ url: clip(l.url, 300), label: clip(l.label, 60), price: l.priceMinor ? toMajor(l.priceMinor, home) : null })), canPayInFullFrom: i.outrightMonth, canTakeEmiFrom: i.emi ? { month: i.emi.month, monthlyEmi: toMajor(i.emi.emiMinor, home), months: i.emi.tenure } : null })),
       suggestedOrder: a.order.map((o) => ({ title: clip(o.title, 80), month: o.month, method: o.method, monthlyEmi: o.emiMinor === null ? null : toMajor(o.emiMinor, home), months: o.tenure })),
     };
   });
@@ -188,14 +188,15 @@ export function createBudgetServer(auth: McpAuth) {
 
   tool(server, auth, {
     name: "add_wishlist_item", title: "Add to the wishlist", scope: "write",
-    description: "Add something the user wants to buy, optionally with a link and EMI terms. Does not buy or spend anything.",
-    input: { title: z.string().min(1).max(80), price: z.number().positive().max(1e9), type: z.enum(["need", "want", "desire"]).optional(), priority: z.number().int().min(1).max(3).optional(), url: z.string().url().max(500).refine((u) => /^https?:\/\//i.test(u), "http or https links only").optional(), notes: z.string().max(300).optional(), emiMonths: z.number().int().min(1).max(120).optional(), emiRatePercent: z.number().min(0).max(100).optional(), downPayment: z.number().min(0).max(1e9).optional() },
+    description: "Add something the user wants to buy, optionally with a quantity, links and EMI terms. price is for one unit. Put alternative models in otherOptions rather than adding them as separate items. Does not buy or spend anything.",
+    input: { title: z.string().min(1).max(80), price: z.number().positive().max(1e9), quantity: z.number().int().min(1).max(999).optional(), otherOptions: z.array(z.object({ url: z.string().url().max(500).refine((u) => /^https?:\/\//i.test(u), "Only web links"), label: z.string().max(60).optional(), price: z.number().positive().max(1e9).optional() })).max(5).optional(), type: z.enum(["need", "want", "desire"]).optional(), priority: z.number().int().min(1).max(3).optional(), url: z.string().url().max(500).refine((u) => /^https?:\/\//i.test(u), "http or https links only").optional(), notes: z.string().max(300).optional(), emiMonths: z.number().int().min(1).max(120).optional(), emiRatePercent: z.number().min(0).max(100).optional(), downPayment: z.number().min(0).max(1e9).optional() },
   }, async (a) => {
     const priceMinor = Math.round(a.price * 10 ** exponent(home));
     const down = a.downPayment !== undefined ? Math.round(a.downPayment * 10 ** exponent(home)) : null;
-    if (down !== null && down >= priceMinor) throw new ToolError("The down payment must be less than the price");
-    const id = await addWish(ws.id, { title: a.title.trim(), priceMinor, type: a.type ?? "want", priority: a.priority ?? 2, targetDate: null, notes: a.notes?.trim() || null, categoryId: null, downPaymentMinor: down, emiTenureMonths: a.emiMonths ?? null, emiRatePct: a.emiMonths ? (a.emiRatePercent ?? 0) : null });
-    if (a.url) await db.insert(schema.wishlistLinks).values({ workspaceId: ws.id, itemId: id, url: a.url, label: null, priceMinor: null });
+    if (down !== null && down >= priceMinor * (a.quantity ?? 1)) throw new ToolError("The down payment must be less than the price");
+    const id = await addWish(ws.id, { quantity: a.quantity ?? 1, title: a.title.trim(), priceMinor, type: a.type ?? "want", priority: a.priority ?? 2, targetDate: null, notes: a.notes?.trim() || null, categoryId: null, downPaymentMinor: down, emiTenureMonths: a.emiMonths ?? null, emiRatePct: a.emiMonths ? (a.emiRatePercent ?? 0) : null });
+    const links = [...(a.url ? [{ url: a.url, label: undefined, price: undefined }] : []), ...(a.otherOptions ?? [])];
+    if (links.length) await db.insert(schema.wishlistLinks).values(links.map((l) => ({ workspaceId: ws.id, itemId: id, url: l.url, label: l.label?.trim() || null, priceMinor: l.price ? Math.round(l.price * 10 ** exponent(home)) : null })));
     return { added: true, title: a.title };
   });
 

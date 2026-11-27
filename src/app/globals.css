@@ -533,3 +533,6 @@ details.more > summary.btn { width: fit-content; }
 .wish__more[open] > summary { margin-bottom: var(--space-sm); }
 .seg__opt { text-decoration: none; }
 nav.seg .seg__opt { text-transform: none; }
+.options { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-xs); }
+.options li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); }
+.wish__edit { padding: var(--space-sm) 0 0; }

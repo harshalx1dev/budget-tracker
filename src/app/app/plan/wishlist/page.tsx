@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { PageSkeleton } from "@/components/page-skeleton";
-import { BoughtButton, LinkChip, LinkForm, RatioForm, RemoveIcon, StatusSelect, WishForm } from "@/components/wish-forms";
+import { BoughtButton, BuyUnitsForm, LinkChip, LinkForm, RatioForm, RemoveIcon, StatusSelect, UseOptionButton, WishForm } from "@/components/wish-forms";
 import { AddPanel } from "@/components/add-panel";
 import { AiButton } from "@/components/ai-bits";
 import { adviseWishlistAction } from "@/app/app/ai-actions";
@@ -51,16 +51,33 @@ async function WishlistLoader() {
                   <p className="row__title">{o.title}</p>
                   <p className="row__value">{money(o.priceMinor)}</p>
                 </div>
+                {i.quantity > 1 && <p className="label">{i.quantity - i.boughtCount} of {i.quantity} still to buy, {money(i.priceMinor)} each</p>}
                 <div className="wish__foot">
                   <p className="when" data-tone={w.tone}>{w.text}</p>
-                  <span className="head-actions"><BoughtButton id={o.id} /><RemoveIcon kind="wish" id={o.id} label={`Delete ${o.title}`} /></span>
+                  <span className="head-actions">{i.quantity > 1 ? <BuyUnitsForm key={i.boughtCount} id={o.id} left={i.quantity - i.boughtCount} /> : <BoughtButton id={o.id} />}<RemoveIcon kind="wish" id={o.id} label={`Delete ${o.title}`} /></span>
                 </div>
                 <details className="wish__more">
-                  <summary className="link">Details and price links</summary>
+                  <summary className="link">Details, options and editing</summary>
                   <div className="stack-sm">
                     <p className="label">{KIND[i.type]}.{i.targetDate ? ` Wanted by ${formatDayYear(i.targetDate)}.` : ""}{o.interestMinor ? ` EMI interest ${money(o.interestMinor)}.` : ""}{i.notes ? ` ${i.notes}` : ""}</p>
-                    <div className="chips">{i.links.map((l) => <LinkChip key={l.id} id={l.id} url={l.url} label={l.label ?? host(l.url)} price={l.priceMinor ? formatMinor(l.priceMinor, home) : null} />)}</div>
+                    {i.links.length > 0 && (
+                      <ul className="options">
+                        {i.links.map((l) => (
+                          <li key={l.id}>
+                            <LinkChip id={l.id} url={l.url} label={l.label ?? host(l.url)} price={l.priceMinor ? formatMinor(l.priceMinor, home) : null} />
+                            {l.priceMinor ? (l.priceMinor === i.priceMinor ? <span className="label">This price is used</span> : <UseOptionButton id={l.id} />) : null}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                     <LinkForm itemId={i.id} />
+                    <details className="wish__more">
+                      <summary className="link">Edit this item</summary>
+                      <WishForm key={JSON.stringify([i.title, i.priceMinor, i.quantity, i.type, i.priority, i.notes, i.targetDate, i.categoryId, i.downPaymentMinor, i.emiTenureMonths, i.emiRatePct])} categories={expense} item={{
+                        id: i.id, title: i.title, price: String(i.priceMinor / 100), quantity: i.quantity, type: i.type, priority: i.priority, targetDate: i.targetDate, categoryId: i.categoryId, notes: i.notes,
+                        down: i.downPaymentMinor ? String(i.downPaymentMinor / 100) : "", tenure: i.emiTenureMonths, rate: i.emiRatePct === null ? "" : String(Number(i.emiRatePct)),
+                      }} />
+                    </details>
                   </div>
                 </details>
               </li>
@@ -94,7 +111,7 @@ async function WishlistLoader() {
             <table className="ledger">
               <tbody>
                 {rest.map((i) => (
-                  <tr key={i.id}><td>{i.title}</td><td className="num">{formatMinor(i.priceMinor, home)}</td><td><StatusSelect id={i.id} status={i.status} /></td><td><RemoveIcon kind="wish" id={i.id} label={`Delete ${i.title}`} /></td></tr>
+                  <tr key={i.id}><td>{i.title}</td><td className="num">{formatMinor(i.priceMinor * i.quantity, home)}</td><td><StatusSelect id={i.id} status={i.status} /></td><td><RemoveIcon kind="wish" id={i.id} label={`Delete ${i.title}`} /></td></tr>
                 ))}
               </tbody>
             </table>

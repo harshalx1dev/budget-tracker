@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { db, schema } from "@/server/db";
 import { createLoan, createRule } from "@/server/services/commitments";
 import { setBuffer } from "@/server/services/planner";
-import { addLink, addWish, affordability, listWishlist, setMaxEmiRatio, setWishStatus } from "@/server/services/wishlist";
+import { addLink, addWish, affordability, buyUnits, chooseLink, listWishlist, setMaxEmiRatio, setWishStatus, updateWish } from "@/server/services/wishlist";
 import { shiftDays, todayISO } from "@/lib/dates";
 
 const ok = (c: unknown, m: string) => { if (!c) { console.error("FAIL", m); process.exitCode = 1; } else console.log("ok  ", m); };
@@ -55,6 +55,23 @@ async function main() {
   await setWishStatus(ws, laptop, "bought", today);
   const after = await affordability(ws, "INR");
   ok(!after.order.some((o) => o.id === laptop), "a bought item leaves the plan");
+
+  // bought a few at a time, with options and editing
+  const lights = await addWish(ws, { ...base, title: "Lights", priceMinor: 50000, quantity: 14, type: "need", priority: 1, downPaymentMinor: null, emiTenureMonths: null, emiRatePct: null });
+  const find = async () => (await listWishlist(ws)).find((i) => i.id === lights)!;
+  ok((await find()).remainingMinor === 700000, "the amount to spend is the price of one times the quantity");
+  await buyUnits(ws, lights, 6, today);
+  ok((await find()).remainingMinor === 400000 && (await affordability(ws, "INR")).order.find((o) => o.id === lights)!.priceMinor === 400000, "buying some leaves only the rest to afford");
+  let tooMany = false;
+  try { await buyUnits(ws, lights, 9, today); } catch { tooMany = true; }
+  ok(tooMany, "more than what is left cannot be bought");
+  await addLink(ws, lights, "https://example.com/b", "Other brand", 45000);
+  await chooseLink(ws, (await find()).links[0].id);
+  ok((await find()).priceMinor === 45000, "choosing an option takes its price");
+  await updateWish(ws, lights, { ...base, title: "Panel lights", priceMinor: 45000, quantity: 6, type: "need", priority: 1, downPaymentMinor: null, emiTenureMonths: null, emiRatePct: null });
+  ok((await find()).status === "bought" && (await find()).title === "Panel lights", "lowering the quantity to what is bought finishes the item");
+  await setWishStatus(ws, lights, "wanted", null);
+  ok((await find()).boughtCount === 0 && (await find()).status === "wanted", "putting it back on the list starts the count again");
 }
 
 main().then(() => process.exit(process.exitCode ?? 0), (e) => { console.error(e); process.exit(1); });
