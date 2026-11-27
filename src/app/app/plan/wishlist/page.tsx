@@ -3,6 +3,8 @@ import Link from "next/link";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { BoughtButton, BuyUnitsForm, LinkChip, LinkForm, RatioForm, RemoveIcon, StatusSelect, UseOptionButton, WishForm } from "@/components/wish-forms";
 import { AddPanel } from "@/components/add-panel";
+import { WishControls } from "@/components/wish-controls";
+import { readView, viewWishes } from "@/lib/wish-view";
 import { AiButton } from "@/components/ai-bits";
 import { adviseWishlistAction } from "@/app/app/ai-actions";
 import { hasKey } from "@/server/ai/gateway";
@@ -19,7 +21,10 @@ const monthLabel = (ym: string) => new Date(`${ym}-01T00:00:00Z`).toLocaleDateSt
 const host = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; } };
 const KIND = { need: "Must have", want: "Nice to have", desire: "Someday" } as const;
 
-async function WishlistLoader() {
+type Query = Promise<Record<string, string | string[] | undefined>>;
+
+async function WishlistLoader({ searchParams }: { searchParams: Query }) {
+  const view = readView(await searchParams);
   const { user, workspace } = await requireWorkspace();
   const home = workspace.homeCurrency;
   const [categories, a, key, advice] = await Promise.all([listCategories(workspace.id), affordability(workspace.id, home), hasKey(user.id), getSummary(workspace.id, "wishlist", "current")]);
@@ -28,7 +33,9 @@ async function WishlistLoader() {
   const now = thisMonth();
   const money = (v: number) => formatMinor(v, home, { whole: true });
   // Each purchase uses up room for the next, so the plan's order is what is shown: soonest first.
-  const list = a.order.map((o) => ({ ...o, item: a.items.find((i) => i.id === o.id)! })).sort((x, y) => (x.month ?? "9999").localeCompare(y.month ?? "9999"));
+  const list = a.order.map((o) => { const item = a.items.find((i) => i.id === o.id)!; return { ...o, item, type: item.type, priority: item.priority }; });
+  const shown = viewWishes(list, view, now);
+  const total = (rows: typeof list) => money(rows.reduce((s, o) => s + o.priceMinor, 0));
   const when = (o: (typeof list)[number]) =>
     !o.month ? { tone: "later", text: `Not before ${monthLabel(a.horizonEnd)}` }
     : o.method === "emi" ? { tone: o.month === now ? "now" : "soon", text: `${money(o.emiMinor ?? 0)} a month for ${o.tenure} months, from ${monthLabel(o.month)}` }
@@ -41,8 +48,12 @@ async function WishlistLoader() {
       {list.length === 0 ? (
         <div className="well empty"><h3>Nothing here yet</h3><p>Add something you want and the app tells you when you can afford it.</p></div>
       ) : (
+        <>
+        <WishControls view={view} />
+        <p className="label" role="status">{shown.length === list.length ? `${list.length} item${list.length === 1 ? "" : "s"}, ${total(list)} in all` : `Showing ${shown.length} of ${list.length}, ${total(shown)} of ${total(list)}`}</p>
+        {shown.length === 0 ? <div className="well empty"><h3>Nothing matches</h3><p>Change or clear the filters to see the rest of your list.</p></div> : (
         <ul className="well rows">
-          {list.map((o) => {
+          {shown.map((o) => {
             const w = when(o);
             const i = o.item;
             return (
@@ -87,6 +98,8 @@ async function WishlistLoader() {
             );
           })}
         </ul>
+        )}
+        </>
       )}
 
       <AddPanel label="Add something you want" open={list.length === 0}><WishForm categories={expense} /></AddPanel>
@@ -125,6 +138,6 @@ async function WishlistLoader() {
   );
 }
 
-export default function Wishlist() {
-  return <Suspense fallback={<PageSkeleton />}><WishlistLoader /></Suspense>;
+export default function Wishlist({ searchParams }: { searchParams: Query }) {
+  return <Suspense fallback={<PageSkeleton />}><WishlistLoader searchParams={searchParams} /></Suspense>;
 }

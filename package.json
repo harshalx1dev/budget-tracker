@@ -11,7 +11,7 @@
     "db:generate": "node --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs generate",
     "db:migrate": "node --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs migrate",
     "db:studio": "node --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs studio",
-    "test": "tsx --test src/lib/lib.test.ts src/lib/phase2.test.ts src/lib/planner.test.ts src/lib/affordability.test.ts src/lib/ai.test.ts src/lib/mcp-token.test.ts src/lib/offline-queue.test.ts src/lib/reminders.test.ts src/lib/savings.test.ts src/lib/card.test.ts",
+    "test": "tsx --test src/lib/lib.test.ts src/lib/phase2.test.ts src/lib/planner.test.ts src/lib/affordability.test.ts src/lib/ai.test.ts src/lib/mcp-token.test.ts src/lib/offline-queue.test.ts src/lib/reminders.test.ts src/lib/savings.test.ts src/lib/card.test.ts src/lib/wish-view.test.ts",
     "check:capture": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-capture.ts",
     "check:commitments": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-commitments.ts",
     "check:planner": "tsx --conditions=react-server --env-file=.env.local scripts/e2e-planner.ts",
